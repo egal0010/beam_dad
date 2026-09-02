@@ -1,0 +1,1 @@
+Ici, c'est comme le modèle B, sauf qu'on change l'input à cos(eta), sin(eta)
