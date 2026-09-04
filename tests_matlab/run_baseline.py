@@ -251,12 +251,12 @@ with torch.no_grad():
                 # Current rho mean
                 # ----------------------------------------
 
-                rho_mean = (
-                    compute_rho_mean(
-                        posterior,
-                        rho_grid,
-                    )
-                )
+                #rho_mean = (
+                #    compute_rho_mean(
+                #        posterior,
+                #        rho_grid,
+                #    )
+                #)
 
 
                 # ----------------------------------------
@@ -270,8 +270,10 @@ with torch.no_grad():
                         s,
                         sigma,
                         p_theta,
-                        rho_mean,
-                        params.N,
+                        posterior,
+                        rho_grid,
+                        type="mean",
+                        N=params.N,
                     )
                 )
 
@@ -288,6 +290,9 @@ with torch.no_grad():
                         s,
                         sigma,
                         params,
+                        posterior,
+                        rho_grid,
+                        type="mean",
                     )
                 )
 

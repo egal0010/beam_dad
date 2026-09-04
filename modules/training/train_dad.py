@@ -141,7 +141,7 @@ def train_dad(
     
     scheduler = torch.optim.lr_scheduler.ExponentialLR(
     optimizer,
-    gamma=0.98,
+    gamma=0.8,
     )
 
 
@@ -160,8 +160,6 @@ def train_dad(
     # ========================================================
 
     for step in range(1, num_steps + 1):
-        if step % 1000 == 0:
-            scheduler.step()
         # ----------------------------------------------------
         # 1. Sample true latent
         # ----------------------------------------------------
@@ -297,6 +295,8 @@ def train_dad(
 
         optimizer.step() #here we update the parameters using the gradients computed in the backward pass and the learning rate specified in the optimizer
 
+        if step % 100 == 0:
+            scheduler.step() #we update the learning rate according to the scheduler, which in this case is an exponential decay
         # ====================================================
         # Logging
         # ====================================================

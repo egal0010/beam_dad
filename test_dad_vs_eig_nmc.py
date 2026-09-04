@@ -21,7 +21,7 @@ from modules.beam_eig.codebook import (
 
 from modules.beam_eig.baseline_eig import (
     choose_beam,
-    estimate_eig_for_eta,
+    estimate_eig_for_eta_mean,
 )
 
 from modules.beam_eig.posterior import (
@@ -56,7 +56,7 @@ N_REAL = 200
 # Nombre de contrastifs uniquement pour l'EVALUATION finale
 # de g_L. Ça n'a rien à voir avec le L utilisé pendant
 # l'entraînement.
-L_EVAL = 70
+L_EVAL = 3000
 
 SEED = 42
 
@@ -617,17 +617,6 @@ with torch.no_grad():
             )
 
 
-            # --------------------------------------------
-            # Current rho estimate used by Amelia EIG
-            # --------------------------------------------
-
-            rho_mean = (
-                compute_rho_mean(
-                    posterior,
-                    rho_grid,
-                )
-            )
-
 
             # ============================================
             # Beam selection timing
@@ -644,7 +633,9 @@ with torch.no_grad():
                     s=s,
                     sigma=sigma,
                     p_theta=p_theta,
-                    rho_mean=rho_mean,
+                    posterior=posterior,
+                    rho_grid=rho_grid,
+                    mode="mean",
                     N=params.N,
                 )
             )
@@ -1137,7 +1128,7 @@ with torch.inference_mode():
                 )
             )
 
-            eig_t = estimate_eig_for_eta(
+            eig_t = estimate_eig_for_eta_mean(
                 eta=eta_vec[:, None],
                 a_grid=a_grid,
                 s=s,
@@ -1429,7 +1420,7 @@ with torch.inference_mode():
                 rho_grid,
             )
 
-            eig_t = estimate_eig_for_eta(
+            eig_t = estimate_eig_for_eta_mean(
                 eta=eta_vec[:, None],
                 a_grid=a_grid,
                 s=s,
@@ -1708,12 +1699,8 @@ print(
 
 print(
     f"Speed-up : "
-    f"{(
-        baseline_time_mean
-        / dad_time_mean
-    ).item():.1f} x"
+    f"{(baseline_time_mean / dad_time_mean).item():.1f} x"
 )
-
 
 # ============================================================
 # Save comparison

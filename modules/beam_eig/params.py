@@ -12,7 +12,7 @@ class Params:
 
     M: int = 50
     N: int = 50
-    T: int = 5
+    T: int = 10
 
     B: int = 2
 

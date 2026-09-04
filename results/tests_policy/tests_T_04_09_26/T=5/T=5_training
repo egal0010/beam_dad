@@ -1,0 +1,46 @@
+(beam_dad) egalarraga@beamsoperaserver1:~/beam_dad$ /home/egalarraga/.conda/envs/beam_dad/bin/python /home/egalarraga/beam_dad/dad_training.py
+Device: cuda
+N antennas : 4
+Ns         : 127
+step      1 | loss = -0.4752 | g_L = +0.4752 | EMA = +0.4752 | std(g_L) = 0.7099 | grad = 0.1113
+step     25 | loss = -0.3849 | g_L = +0.3849 | EMA = +0.4233 | std(g_L) = 0.8227 | grad = 0.1658
+step     50 | loss = -0.7733 | g_L = +0.7733 | EMA = +0.5294 | std(g_L) = 0.7115 | grad = 0.7659
+step     75 | loss = -1.0758 | g_L = +1.0758 | EMA = +0.9211 | std(g_L) = 0.9509 | grad = 0.6528
+step    100 | loss = -1.5141 | g_L = +1.5141 | EMA = +1.3208 | std(g_L) = 1.0335 | grad = 0.6187
+step    125 | loss = -1.8390 | g_L = +1.8390 | EMA = +1.6299 | std(g_L) = 0.9452 | grad = 0.5179
+step    150 | loss = -2.0458 | g_L = +2.0458 | EMA = +1.8271 | std(g_L) = 0.8800 | grad = 0.6253
+step    175 | loss = -2.0558 | g_L = +2.0558 | EMA = +1.9475 | std(g_L) = 0.9289 | grad = 0.4887
+step    200 | loss = -2.0928 | g_L = +2.0928 | EMA = +2.0608 | std(g_L) = 0.9375 | grad = 0.5259
+step    225 | loss = -2.2153 | g_L = +2.2153 | EMA = +2.2585 | std(g_L) = 0.8035 | grad = 0.4145
+step    250 | loss = -2.4147 | g_L = +2.4147 | EMA = +2.3695 | std(g_L) = 0.7989 | grad = 0.5065
+step    275 | loss = -2.4159 | g_L = +2.4159 | EMA = +2.4105 | std(g_L) = 0.7297 | grad = 0.2822
+step    300 | loss = -2.2927 | g_L = +2.2927 | EMA = +2.4009 | std(g_L) = 0.9673 | grad = 0.8246
+step    325 | loss = -2.3874 | g_L = +2.3874 | EMA = +2.3905 | std(g_L) = 0.8179 | grad = 0.8517
+step    350 | loss = -2.4459 | g_L = +2.4459 | EMA = +2.4199 | std(g_L) = 0.7178 | grad = 0.3752
+step    375 | loss = -2.3858 | g_L = +2.3858 | EMA = +2.4197 | std(g_L) = 0.6898 | grad = 0.5481
+step    400 | loss = -2.4632 | g_L = +2.4632 | EMA = +2.4192 | std(g_L) = 0.7244 | grad = 0.8905
+step    425 | loss = -2.3953 | g_L = +2.3953 | EMA = +2.4175 | std(g_L) = 0.7475 | grad = 0.2229
+step    450 | loss = -2.4100 | g_L = +2.4100 | EMA = +2.4338 | std(g_L) = 1.0205 | grad = 0.4243
+step    475 | loss = -2.4250 | g_L = +2.4250 | EMA = +2.4273 | std(g_L) = 0.7242 | grad = 0.4391
+step    500 | loss = -2.5086 | g_L = +2.5086 | EMA = +2.4235 | std(g_L) = 0.6527 | grad = 0.7010
+step    525 | loss = -2.4486 | g_L = +2.4486 | EMA = +2.4151 | std(g_L) = 0.8463 | grad = 0.8146
+step    550 | loss = -2.3765 | g_L = +2.3765 | EMA = +2.4167 | std(g_L) = 0.8199 | grad = 0.7747
+step    575 | loss = -2.4661 | g_L = +2.4661 | EMA = +2.4127 | std(g_L) = 0.6924 | grad = 0.4220
+step    600 | loss = -2.6101 | g_L = +2.6101 | EMA = +2.4320 | std(g_L) = 0.5996 | grad = 0.0925
+step    625 | loss = -2.2979 | g_L = +2.2979 | EMA = +2.4368 | std(g_L) = 0.9094 | grad = 0.9996
+step    650 | loss = -2.3410 | g_L = +2.3410 | EMA = +2.4379 | std(g_L) = 0.8496 | grad = 0.6671
+step    675 | loss = -2.5172 | g_L = +2.5172 | EMA = +2.4269 | std(g_L) = 0.6867 | grad = 0.8525
+step    700 | loss = -2.4047 | g_L = +2.4047 | EMA = +2.4232 | std(g_L) = 0.9068 | grad = 0.5962
+step    725 | loss = -2.5296 | g_L = +2.5296 | EMA = +2.4249 | std(g_L) = 0.6120 | grad = 0.4504
+step    750 | loss = -2.3592 | g_L = +2.3592 | EMA = +2.4429 | std(g_L) = 0.8322 | grad = 0.1717
+step    775 | loss = -2.3413 | g_L = +2.3413 | EMA = +2.4354 | std(g_L) = 0.8197 | grad = 0.4955
+step    800 | loss = -2.2671 | g_L = +2.2671 | EMA = +2.4325 | std(g_L) = 0.9381 | grad = 0.3740
+step    825 | loss = -2.3289 | g_L = +2.3289 | EMA = +2.4332 | std(g_L) = 0.7978 | grad = 1.1975
+step    850 | loss = -2.4396 | g_L = +2.4396 | EMA = +2.4378 | std(g_L) = 0.6531 | grad = 0.1688
+step    875 | loss = -2.5367 | g_L = +2.5367 | EMA = +2.4335 | std(g_L) = 0.6518 | grad = 0.5177
+step    900 | loss = -2.4972 | g_L = +2.4972 | EMA = +2.4403 | std(g_L) = 0.6682 | grad = 0.4774
+step    925 | loss = -2.3999 | g_L = +2.3999 | EMA = +2.4385 | std(g_L) = 0.9551 | grad = 0.4677
+step    950 | loss = -2.2884 | g_L = +2.2884 | EMA = +2.4403 | std(g_L) = 0.7728 | grad = 0.5217
+step    975 | loss = -2.4881 | g_L = +2.4881 | EMA = +2.4405 | std(g_L) = 0.6660 | grad = 0.2687
+step   1000 | loss = -2.3807 | g_L = +2.3807 | EMA = +2.4370 | std(g_L) = 0.9015 | grad = 0.5670
+Model saved.

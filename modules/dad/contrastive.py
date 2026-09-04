@@ -136,6 +136,50 @@ def trajectory_log_likelihood(
     return total_log_prob
 
 
+def contrastive_bound_from_log_prob(log_prob):
+    """
+    Compute g_L from precomputed trajectory log probabilities.
+
+    The first column must correspond to the true theta and all remaining
+    columns to contrastive candidates.
+
+    Parameters
+    ----------
+    log_prob : Tensor [B, L + 1]
+        log p(h_T | theta_c) for every candidate.
+
+    Returns
+    -------
+    bound : scalar Tensor
+        Monte-Carlo batch mean of g_L.
+    g_L : Tensor [B]
+        Per-realization contrastive bounds.
+    """
+
+    if log_prob.ndim != 2:
+        raise ValueError(
+            "log_prob must have shape [B, L + 1], "
+            f"got {tuple(log_prob.shape)}."
+        )
+
+    C = log_prob.shape[1]
+
+    if C < 2:
+        raise ValueError(
+            "log_prob must contain the true theta and at least "
+            "one contrastive candidate."
+        )
+
+    log_prob_true = log_prob[:, 0]
+    log_evidence = (
+        torch.logsumexp(log_prob, dim=1)
+        - math.log(C)
+    )
+    g_L = log_prob_true - log_evidence
+
+    return g_L.mean(), g_L
+
+
 def contrastive_bound(
     theta_candidates,
     eta_history,
@@ -151,25 +195,7 @@ def contrastive_bound(
         log_p_rho_prior,
     )
 
-    # vrai theta = colonne 0
-    log_prob_true = log_prob[:, 0]
-
-    C = theta_candidates.shape[1]
-
-    log_evidence = (
-        torch.logsumexp(
-            log_prob,
-            dim=1,
-        )
-        - math.log(C) #C=L+1, le +1 vient du fait que theta_true est ajouté à la liste des candidats
-    ) 
-
-    g_L = (
-        log_prob_true
-        - log_evidence
-    ) #donc log_prob_true = log p(h_T | theta_true) et log_evidence =log \frac{1}{L+1} \sum_{\ell=1}^L p(h_T | theta_{candidates}) 
-
-    return g_L.mean(), g_L
+    return contrastive_bound_from_log_prob(log_prob)
 
 
 def _as_beam(design):

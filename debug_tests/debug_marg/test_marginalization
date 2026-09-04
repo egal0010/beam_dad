@@ -1,0 +1,479 @@
+import math
+
+import torch
+
+from modules.beam_eig.params import Params
+from modules.beam_eig.pilot import generate_pilot_sequence
+from modules.beam_eig.simulator import sigma_from_snr
+
+from modules.dad.policy import DADPolicy
+from modules.dad.experiment import rollout
+
+from modules.dad.contrastive import (
+    trajectory_log_likelihood,
+    make_log_likelihood_fn,
+    make_observation_fn,
+)
+
+from modules.training.train_dad import (
+    sample_rho_prior,
+    sample_theta_prior,
+)
+
+
+# ============================================================
+# Configuration
+# ============================================================
+
+BATCH_SIZE = 32
+N_EXPERIMENTS = 5
+RHO_GRID_SIZE = 50
+SNR_DB = 0.0
+
+N_TRIALS = 5
+N_CANDIDATES = 4
+
+SEED = 42
+
+
+# ============================================================
+# Device
+# ============================================================
+
+device = torch.device(
+    "cuda"
+    if torch.cuda.is_available()
+    else "cpu"
+)
+
+dtype = torch.float32
+
+print("Device:", device)
+
+
+# ============================================================
+# Reproducibility
+# ============================================================
+
+torch.manual_seed(SEED)
+
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(SEED)
+
+
+# ============================================================
+# Physical model
+# ============================================================
+
+params = Params(
+    Nx=4,
+    Ny=1,
+)
+
+s = generate_pilot_sequence(
+    device=device,
+    sequence_type="PSS",
+).to(dtype=dtype)
+
+Ns = s.numel()
+
+
+# ============================================================
+# Policy
+#
+# It does NOT need to be trained for this test.
+# We only need it to generate an adaptive trajectory.
+# ============================================================
+
+policy = DADPolicy(
+    design_dim=params.K,
+    observation_dim=Ns,
+    hidden_dim=256,
+    encoding_dim=64,
+).to(
+    device=device,
+    dtype=dtype,
+)
+
+policy.eval()
+
+
+# ============================================================
+# rho grid
+# ============================================================
+
+rho_grid = torch.linspace(
+    0.05,
+    1.0,
+    RHO_GRID_SIZE,
+    device=device,
+    dtype=dtype,
+)
+
+R = rho_grid.numel()
+
+log_p_rho_prior = torch.full(
+    (R,),
+    -math.log(R),
+    device=device,
+    dtype=dtype,
+)
+
+
+# ============================================================
+# DIRECT marginalization
+# ============================================================
+
+def log_p_history_given_theta_direct(
+    theta_candidates,
+    eta_history,
+    r_history,
+    log_likelihood_fn,
+    log_p_rho_prior,
+):
+    """
+    Direct computation of
+
+        log p(h_T | theta)
+
+    with rho marginalized only ONCE over the entire trajectory:
+
+        p(h_T | theta)
+        =
+        sum_rho p(rho)
+        prod_t p(r_t | theta, rho, eta_t)
+
+    Parameters
+    ----------
+    theta_candidates : [B, C]
+
+    eta_history : [B, T, K]
+
+    r_history : [B, T, Ns]
+
+    log_likelihood_fn :
+        Returns
+
+            log p(r_t | theta, rho, eta_t)
+
+        for every rho candidate.
+
+    log_p_rho_prior : [R]
+
+    Returns
+    -------
+    log_prob : [B, C]
+
+        log p(h_T | theta_c)
+    """
+
+    B, T, K = eta_history.shape
+
+    C = theta_candidates.shape[1]
+
+    R = log_p_rho_prior.numel()
+
+    Ns = r_history.shape[-1]
+
+    # --------------------------------------------------------
+    # Start with:
+    #
+    # log p(rho)
+    #
+    # shape : [B,C,R]
+    # --------------------------------------------------------
+
+    log_joint = (
+        log_p_rho_prior
+        .view(1, 1, R)
+        .expand(B, C, R)
+        .clone()
+    )
+
+    # --------------------------------------------------------
+    # Add:
+    #
+    # sum_t log p(r_t | theta, rho, eta_t)
+    #
+    # IMPORTANT:
+    # rho is NOT marginalized inside this loop.
+    # --------------------------------------------------------
+
+    for t in range(T):
+
+        eta_t = (
+            eta_history[:, t, :]
+            .unsqueeze(1)
+            .expand(B, C, K)
+        )
+
+        r_t = (
+            r_history[:, t, :]
+            .unsqueeze(1)
+            .expand(B, C, Ns)
+        )
+
+        log_like_t = log_likelihood_fn(
+            theta_candidates,
+            eta_t,
+            r_t,
+        )
+
+        # Expected:
+        #
+        # [B,C,R]
+        #
+        # One likelihood for every:
+        # batch × theta candidate × rho candidate.
+
+        if log_like_t.shape != (B, C, R):
+            raise RuntimeError(
+                "Unexpected likelihood shape: "
+                f"{log_like_t.shape}, "
+                f"expected {(B, C, R)}"
+            )
+
+        log_joint = (
+            log_joint
+            + log_like_t
+        )
+
+    # --------------------------------------------------------
+    # ONLY NOW marginalize rho:
+    #
+    # log sum_rho [
+    #     p(rho)
+    #     prod_t likelihood_t
+    # ]
+    # --------------------------------------------------------
+
+    log_prob = torch.logsumexp(
+        log_joint,
+        dim=-1,
+    )
+
+    return log_prob
+
+
+# ============================================================
+# Test
+# ============================================================
+
+print()
+print("=" * 70)
+print("DIRECT vs SEQUENTIAL rho MARGINALIZATION")
+print("=" * 70)
+
+
+with torch.inference_mode():
+
+    for trial in range(1, N_TRIALS + 1):
+
+        # ====================================================
+        # Sample true latent variables
+        # ====================================================
+
+        theta_true = sample_theta_prior(
+            BATCH_SIZE,
+            device,
+            dtype,
+        )
+
+        rho_true = sample_rho_prior(
+            BATCH_SIZE,
+            device,
+            dtype,
+        )
+
+
+        # ====================================================
+        # Current noise model
+        #
+        # IMPORTANT:
+        # For THIS test that is OK.
+        #
+        # We only test whether direct and sequential
+        # marginalization are algebraically equivalent.
+        #
+        # Both methods receive exactly the same sigma.
+        # ====================================================
+
+        sigma = sigma_from_snr(
+            s=s,
+            snr_db=SNR_DB,
+            rho_true=rho_true,
+        )
+
+
+        # ====================================================
+        # Generate ONE history
+        # ====================================================
+
+        observation_fn = make_observation_fn(
+            rho=rho_true,
+            s=s,
+            sigma=sigma,
+            params=params,
+        )
+
+        eta_history, r_history = rollout(
+            policy=policy,
+            theta=theta_true,
+            n_steps=N_EXPERIMENTS,
+            observation_fn=observation_fn,
+        )
+
+
+        # ====================================================
+        # Test several theta candidates simultaneously
+        #
+        # candidate 0 = true theta
+        # others = independent prior samples
+        # ====================================================
+
+        theta_contrast = sample_theta_prior(
+            BATCH_SIZE * (N_CANDIDATES - 1),
+            device,
+            dtype,
+        ).reshape(
+            BATCH_SIZE,
+            N_CANDIDATES - 1,
+        )
+
+        theta_candidates = torch.cat(
+            [
+                theta_true.unsqueeze(1),
+                theta_contrast,
+            ],
+            dim=1,
+        )
+
+        # [B,C]
+
+
+        # ====================================================
+        # Same likelihood function for BOTH calculations
+        # ====================================================
+
+        log_likelihood_fn = make_log_likelihood_fn(
+            rho_grid=rho_grid,
+            s=s,
+            sigma=sigma,
+            params=params,
+        )
+
+
+        # ====================================================
+        # DIRECT
+        # ====================================================
+
+        log_p_direct = (
+            log_p_history_given_theta_direct(
+                theta_candidates=theta_candidates,
+                eta_history=eta_history,
+                r_history=r_history,
+                log_likelihood_fn=log_likelihood_fn,
+                log_p_rho_prior=log_p_rho_prior,
+            )
+        )
+
+
+        # ====================================================
+        # SEQUENTIAL
+        # ====================================================
+
+        log_p_sequential = trajectory_log_likelihood(
+            theta_candidates=theta_candidates,
+            eta_history=eta_history,
+            r_history=r_history,
+            log_likelihood_fn=log_likelihood_fn,
+            log_p_rho_prior=log_p_rho_prior,
+        )
+
+
+        # ====================================================
+        # Difference
+        # ====================================================
+
+        diff = (
+            log_p_direct
+            - log_p_sequential
+        )
+
+        abs_diff = torch.abs(diff)
+
+        max_abs_diff = (
+            abs_diff.max().item()
+        )
+
+        mean_abs_diff = (
+            abs_diff.mean().item()
+        )
+
+
+        print(
+            f"trial {trial:2d} | "
+            f"max abs diff = {max_abs_diff:.3e} | "
+            f"mean abs diff = {mean_abs_diff:.3e}"
+        )
+
+
+        # ====================================================
+        # Strong numerical check
+        # ====================================================
+
+        if not torch.allclose(
+            log_p_direct,
+            log_p_sequential,
+            rtol=1e-5,
+            atol=1e-4,
+        ):
+
+            print()
+            print("WARNING: methods do NOT match.")
+
+            # Show worst element
+
+            flat_idx = torch.argmax(
+                abs_diff
+            )
+
+            idx = torch.unravel_index(
+                flat_idx,
+                abs_diff.shape,
+            )
+
+            print(
+                "Worst index:",
+                tuple(
+                    int(x)
+                    for x in idx
+                ),
+            )
+
+            print(
+                "Direct     :",
+                log_p_direct[idx].item(),
+            )
+
+            print(
+                "Sequential :",
+                log_p_sequential[idx].item(),
+            )
+
+            print(
+                "Difference :",
+                diff[idx].item(),
+            )
+
+            raise RuntimeError(
+                "Direct and sequential "
+                "marginalization disagree."
+            )
+
+
+print()
+print("=" * 70)
+print("SUCCESS")
+print("Direct and sequential marginalization agree.")
+print("=" * 70)

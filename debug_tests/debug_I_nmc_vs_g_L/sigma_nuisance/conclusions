@@ -1,0 +1,142 @@
+(beam_dad) egalarraga@beamsoperaserver1:~/beam_dad$ /home/egalarraga/.conda/envs/beam_dad/bin/python /home/egalarraga/beam_dad/test_I_n_mc_vs_g_L_sigma_nuisance.py
+Device: cuda
+N antennas : 4
+Ns         : 127
+sigma      : 0.5
+rho range  : 0.05000000074505806 -> 1.0
+
+==============================================================================
+T=1 | NUISANCE rho | FIXED sigma | FIXED eta
+==============================================================================
+batch   1/100 | likelihood diff = 2.289e-05
+batch   2/100 | likelihood diff = 3.052e-05
+batch   3/100 | likelihood diff = 3.052e-05
+batch   4/100 | likelihood diff = 6.104e-05
+batch   5/100 | likelihood diff = 7.629e-06
+batch   6/100 | likelihood diff = 7.629e-06
+batch   7/100 | likelihood diff = 3.052e-05
+batch   8/100 | likelihood diff = 2.289e-05
+batch   9/100 | likelihood diff = 3.052e-05
+batch  10/100 | likelihood diff = 1.907e-06
+batch  11/100 | likelihood diff = 3.052e-05
+batch  12/100 | likelihood diff = 1.526e-05
+batch  13/100 | likelihood diff = 3.052e-05
+batch  14/100 | likelihood diff = 1.526e-05
+batch  15/100 | likelihood diff = 3.052e-05
+batch  16/100 | likelihood diff = 1.144e-05
+batch  17/100 | likelihood diff = 1.526e-05
+batch  18/100 | likelihood diff = 1.526e-05
+batch  19/100 | likelihood diff = 6.104e-05
+batch  20/100 | likelihood diff = 3.052e-05
+batch  21/100 | likelihood diff = 4.578e-05
+batch  22/100 | likelihood diff = 3.052e-05
+batch  23/100 | likelihood diff = 1.526e-05
+batch  24/100 | likelihood diff = 1.907e-06
+batch  25/100 | likelihood diff = 1.526e-05
+batch  26/100 | likelihood diff = 3.052e-05
+batch  27/100 | likelihood diff = 3.052e-05
+batch  28/100 | likelihood diff = 3.433e-05
+batch  29/100 | likelihood diff = 3.815e-06
+batch  30/100 | likelihood diff = 1.144e-05
+batch  31/100 | likelihood diff = 3.052e-05
+batch  32/100 | likelihood diff = 1.526e-05
+batch  33/100 | likelihood diff = 7.629e-06
+batch  34/100 | likelihood diff = 3.052e-05
+batch  35/100 | likelihood diff = 1.526e-05
+batch  36/100 | likelihood diff = 1.526e-05
+batch  37/100 | likelihood diff = 1.526e-05
+batch  38/100 | likelihood diff = 1.526e-05
+batch  39/100 | likelihood diff = 6.104e-05
+batch  40/100 | likelihood diff = 4.578e-05
+batch  41/100 | likelihood diff = 3.052e-05
+batch  42/100 | likelihood diff = 1.526e-05
+batch  43/100 | likelihood diff = 4.578e-05
+batch  44/100 | likelihood diff = 3.052e-05
+batch  45/100 | likelihood diff = 1.526e-05
+batch  46/100 | likelihood diff = 3.052e-05
+batch  47/100 | likelihood diff = 3.052e-05
+batch  48/100 | likelihood diff = 3.052e-05
+batch  49/100 | likelihood diff = 1.526e-05
+batch  50/100 | likelihood diff = 3.052e-05
+batch  51/100 | likelihood diff = 1.526e-05
+batch  52/100 | likelihood diff = 3.052e-05
+batch  53/100 | likelihood diff = 3.052e-05
+batch  54/100 | likelihood diff = 7.629e-06
+batch  55/100 | likelihood diff = 3.052e-05
+batch  56/100 | likelihood diff = 1.526e-05
+batch  57/100 | likelihood diff = 3.052e-05
+batch  58/100 | likelihood diff = 1.526e-05
+batch  59/100 | likelihood diff = 4.578e-05
+batch  60/100 | likelihood diff = 7.629e-06
+batch  61/100 | likelihood diff = 3.052e-05
+batch  62/100 | likelihood diff = 1.526e-05
+batch  63/100 | likelihood diff = 3.052e-05
+batch  64/100 | likelihood diff = 1.526e-05
+batch  65/100 | likelihood diff = 6.104e-05
+batch  66/100 | likelihood diff = 6.104e-05
+batch  67/100 | likelihood diff = 7.629e-06
+batch  68/100 | likelihood diff = 1.526e-05
+batch  69/100 | likelihood diff = 7.629e-06
+batch  70/100 | likelihood diff = 1.526e-05
+batch  71/100 | likelihood diff = 1.526e-05
+batch  72/100 | likelihood diff = 3.815e-06
+batch  73/100 | likelihood diff = 3.052e-05
+batch  74/100 | likelihood diff = 3.052e-05
+batch  75/100 | likelihood diff = 3.052e-05
+batch  76/100 | likelihood diff = 3.052e-05
+batch  77/100 | likelihood diff = 3.052e-05
+batch  78/100 | likelihood diff = 1.526e-05
+batch  79/100 | likelihood diff = 3.052e-05
+batch  80/100 | likelihood diff = 6.104e-05
+batch  81/100 | likelihood diff = 3.052e-05
+batch  82/100 | likelihood diff = 7.629e-06
+batch  83/100 | likelihood diff = 3.052e-05
+batch  84/100 | likelihood diff = 4.578e-05
+batch  85/100 | likelihood diff = 7.629e-06
+batch  86/100 | likelihood diff = 1.526e-05
+batch  87/100 | likelihood diff = 1.526e-05
+batch  88/100 | likelihood diff = 1.144e-05
+batch  89/100 | likelihood diff = 3.052e-05
+batch  90/100 | likelihood diff = 7.629e-06
+batch  91/100 | likelihood diff = 3.815e-06
+batch  92/100 | likelihood diff = 5.722e-06
+batch  93/100 | likelihood diff = 3.052e-05
+batch  94/100 | likelihood diff = 3.052e-05
+batch  95/100 | likelihood diff = 3.052e-05
+batch  96/100 | likelihood diff = 4.578e-05
+batch  97/100 | likelihood diff = 7.629e-06
+batch  98/100 | likelihood diff = 7.629e-06
+batch  99/100 | likelihood diff = 1.526e-05
+batch 100/100 | likelihood diff = 1.526e-05
+
+==============================================================================
+RESULTS
+==============================================================================
+Reference targeted EIG : 0.381092 +/- 0.033597 nats (approx. 95% MC interval)
+
+       L |       E[g_L] |       2 SE |   gap to EIG |   log(L+1)
+-----------------------------------------------------------------
+       1 |     0.158625 |   0.020774 |     0.222468 |   0.693147
+       5 |     0.305615 |   0.030131 |     0.075478 |   1.791759
+      10 |     0.344371 |   0.032473 |     0.036721 |   2.397895
+      30 |     0.366776 |   0.033558 |     0.014316 |   3.433987
+      70 |     0.372683 |   0.033430 |     0.008410 |   4.262680
+     128 |     0.375712 |   0.033507 |     0.005380 |   4.859812
+     300 |     0.379673 |   0.033622 |     0.001419 |   5.707110
+    1000 |     0.380636 |   0.033644 |     0.000457 |   6.908755
+    3000 |     0.380550 |   0.033583 |     0.000543 |   8.006701
+
+==============================================================================
+TARGETED LIKELIHOOD CONSISTENCY
+==============================================================================
+Maximum error : 6.104e-05
+Mean max error: 2.409e-05
+
+==============================================================================
+EXPECTED RESULT
+==============================================================================
+If the implementation is correct:
+1) likelihood consistency errors should be ~ numerical precision;
+2) E[g_L] should approach the reference targeted EIG as L grows.
+
+intéressant, l'eig est plus faible quand on ne connait pas rho(et qu'on marginalise du coup)(0.777506 +/- 0.031856 nats pour l'eig avec rho connu)

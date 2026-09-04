@@ -80,13 +80,13 @@ history = train_dad(
     params=params,
     s=s,
 
-    num_steps=500,
+    num_steps=1000,
 
-    batch_size=80,
+    batch_size=128,
 
-    L=70,
+    L=128,
 
-    n_experiments=5,
+    n_experiments=10,
 
     snr_db=0.0, #on n'entraînerait pas avec différents snr? 
 
@@ -96,7 +96,7 @@ history = train_dad(
 
     grad_clip=1.0,
 
-    print_every=10,
+    print_every=25,
 )
 
 

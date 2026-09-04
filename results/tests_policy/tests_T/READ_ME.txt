@@ -103,7 +103,7 @@ class Encoder(nn.Module):
     ):
         super().__init__()
 
-        input_dim = design_dim + observation_dim
+        input_dim = design_dim + observation_dim  -----> Ici on utilisait encore comme entrée les 127 amplitudes, pas la moyenne + variance
 
         self.net = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),

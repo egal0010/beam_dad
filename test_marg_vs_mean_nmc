@@ -1,0 +1,724 @@
+import math
+
+import torch
+
+from modules.beam_eig.params import Params
+from modules.beam_eig.pilot import generate_pilot_sequence
+from modules.beam_eig.array_model import (
+    beam_from_phases,
+    steering_vector_batch,
+)
+from modules.beam_eig.simulator import simulate_y
+from modules.beam_eig.likelihood import (
+    log_amplitude_vector_likelihood,
+)
+
+from modules.beam_eig.baseline_eig import (
+    choose_beam,
+)
+
+
+# ============================================================
+# Configuration
+# ============================================================
+
+SEED = 42
+
+SNR_DB = 0.0
+
+N_THETA = 241
+N_RHO = 50
+
+N_NMC = 50
+
+T = 5
+
+# Start small because marginal NMC is expensive.
+N_TRAJECTORIES = 20
+
+BITS = 2
+
+
+# ============================================================
+# Device
+# ============================================================
+
+device = torch.device(
+    "cuda"
+    if torch.cuda.is_available()
+    else "cpu"
+)
+
+dtype = torch.float32
+
+torch.manual_seed(SEED)
+
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(SEED)
+
+print("Device:", device)
+
+
+# ============================================================
+# Model
+# ============================================================
+
+params = Params(
+    Nx=4,
+    Ny=1,
+)
+
+K = params.K
+
+
+# ============================================================
+# PSS
+# ============================================================
+
+s = generate_pilot_sequence(
+    device=device,
+    sequence_type="PSS",
+).to(dtype=dtype)
+
+Es = torch.mean(
+    torch.abs(s) ** 2
+)
+
+snr_lin = 10.0 ** (
+    SNR_DB / 10.0
+)
+
+
+# ============================================================
+# IMPORTANT:
+#
+# Transmitter / nominal SNR fixed.
+#
+# sigma does NOT depend on rho_true.
+# ============================================================
+
+sigma = torch.sqrt(
+    Es / snr_lin
+)
+
+print("Es       :", Es.item())
+print("SNR tx   :", SNR_DB, "dB")
+print("sigma    :", sigma.item())
+
+
+# ============================================================
+# theta grid
+# ============================================================
+
+theta_grid = torch.linspace(
+    math.radians(30.0),
+    math.radians(150.0),
+    N_THETA,
+    device=device,
+    dtype=dtype,
+)
+
+p_theta_prior = torch.full(
+    (N_THETA,),
+    1.0 / N_THETA,
+    device=device,
+    dtype=dtype,
+)
+
+
+# ============================================================
+# rho grid
+# ============================================================
+
+rho_grid = torch.linspace(
+    0.05,
+    1.0,
+    N_RHO,
+    device=device,
+    dtype=dtype,
+)
+
+p_rho_prior = torch.full(
+    (N_RHO,),
+    1.0 / N_RHO,
+    device=device,
+    dtype=dtype,
+)
+
+
+# ============================================================
+# Joint prior
+#
+# p(theta,rho)
+# ============================================================
+
+posterior_prior = (
+    p_theta_prior[:, None]
+    * p_rho_prior[None, :]
+)
+
+# [N_theta,N_rho]
+
+
+# ============================================================
+# Steering matrix
+# ============================================================
+
+a_grid_batch = steering_vector_batch(
+    theta_grid,
+    params,
+)
+
+# [N_theta,K]
+
+a_grid = a_grid_batch.T
+
+# [K,N_theta]
+
+
+# ============================================================
+# 2-bit phase codebook
+#
+# eta_0 = 0 removes global phase redundancy.
+# ============================================================
+
+def make_phase_codebook(
+    K,
+    bits,
+    device,
+    dtype,
+):
+
+    Q = 2**bits
+
+    levels = (
+        2.0
+        * math.pi
+        * torch.arange(
+            Q,
+            device=device,
+            dtype=dtype,
+        )
+        / Q
+    )
+
+    # All combinations for K-1 relative phases
+    meshes = torch.meshgrid(
+        *[
+            torch.arange(
+                Q,
+                device=device,
+            )
+            for _ in range(K - 1)
+        ],
+        indexing="ij",
+    )
+
+    indices = torch.stack(
+        [
+            x.reshape(-1)
+            for x in meshes
+        ],
+        dim=0,
+    )
+
+    R = indices.shape[1]
+
+    eta_grid = torch.zeros(
+        K,
+        R,
+        device=device,
+        dtype=dtype,
+    )
+
+    eta_grid[1:, :] = levels[
+        indices
+    ]
+
+    return eta_grid
+
+
+eta_grid = make_phase_codebook(
+    K=K,
+    bits=BITS,
+    device=device,
+    dtype=dtype,
+)
+
+print(
+    "Codebook size:",
+    eta_grid.shape[1],
+)
+
+
+# ============================================================
+# Exact joint posterior update
+# ============================================================
+
+def update_joint_posterior(
+    posterior,
+    eta,
+    amp,
+):
+    """
+    posterior:
+        [N_theta,N_rho]
+
+    eta:
+        [K,1]
+
+    amp:
+        [Ns]
+
+    returns:
+        normalized posterior
+        [N_theta,N_rho]
+    """
+
+    tiny = torch.finfo(
+        posterior.dtype
+    ).tiny
+
+    b = beam_from_phases(
+        eta
+    )
+
+    beam_response = (
+        b.conj().T
+        @ a_grid
+    ).squeeze(0)
+
+    # [N_theta]
+
+    alpha_theta_rho = (
+        beam_response[:, None]
+        * rho_grid[None, :]
+    )
+
+    # [N_theta,N_rho]
+
+    log_like = (
+        log_amplitude_vector_likelihood(
+            amp[None, None, :],
+            s,
+            alpha_theta_rho,
+            sigma**2,
+        )
+    )
+
+    # [N_theta,N_rho]
+
+    log_post = (
+        torch.log(
+            posterior + tiny
+        )
+        + log_like
+    )
+
+    log_norm = torch.logsumexp(
+        log_post.reshape(-1),
+        dim=0,
+    )
+
+    posterior_new = torch.exp(
+        log_post - log_norm
+    )
+
+    return posterior_new
+
+
+# ============================================================
+# Generate REAL observation
+# ============================================================
+
+def generate_real_observation(
+    theta_idx,
+    rho_true,
+    eta,
+):
+
+    b = beam_from_phases(
+        eta
+    )
+
+    a_true = a_grid[
+        :,
+        theta_idx,
+    ]
+
+    beam_response_true = (
+        b.conj().T
+        @ a_true[:, None]
+    ).squeeze()
+
+    alpha_true = (
+        rho_true
+        * beam_response_true
+    )
+
+    y = simulate_y(
+        alpha_true[None],
+        s,
+        sigma,
+    )
+
+    return torch.abs(
+        y[0]
+    )
+
+
+# ============================================================
+# Storages
+# ============================================================
+
+eig_mean_steps = [
+    []
+    for _ in range(T)
+]
+
+eig_marg_steps = [
+    []
+    for _ in range(T)
+]
+
+rho_mean_steps = [
+    []
+    for _ in range(T)
+]
+
+rho_marg_steps = [
+    []
+    for _ in range(T)
+]
+
+theta_error_mean = []
+theta_error_marg = []
+
+
+# ============================================================
+# Experiment
+# ============================================================
+
+with torch.inference_mode():
+
+    for trial in range(
+        N_TRAJECTORIES
+    ):
+
+        # ----------------------------------------------------
+        # SAME latent parameters for both policies
+        # ----------------------------------------------------
+
+        theta_idx_true = torch.multinomial(
+            p_theta_prior,
+            1,
+            replacement=True,
+        ).item()
+
+        rho_idx_true = torch.multinomial(
+            p_rho_prior,
+            1,
+            replacement=True,
+        ).item()
+
+        theta_true = theta_grid[
+            theta_idx_true
+        ]
+
+        rho_true = rho_grid[
+            rho_idx_true
+        ]
+
+
+        # ----------------------------------------------------
+        # Independent histories / posteriors
+        # ----------------------------------------------------
+
+        posterior_mean = (
+            posterior_prior.clone()
+        )
+
+        posterior_marg = (
+            posterior_prior.clone()
+        )
+
+
+        # ====================================================
+        # Sequential acquisition
+        # ====================================================
+
+        for t in range(T):
+
+            # ------------------------------------------------
+            # Current theta marginals
+            # ------------------------------------------------
+
+            p_theta_mean = (
+                posterior_mean.sum(
+                    dim=1
+                )
+            )
+
+            p_theta_marg = (
+                posterior_marg.sum(
+                    dim=1
+                )
+            )
+
+
+            # ------------------------------------------------
+            # MEAN baseline
+            # ------------------------------------------------
+
+            eta_mean, eig_values_mean = (
+                choose_beam(
+                    eta_grid=eta_grid,
+                    a_grid=a_grid,
+                    s=s,
+                    sigma=sigma,
+                    p_theta=p_theta_mean,
+                    posterior=posterior_mean,
+                    rho_grid=rho_grid,
+                    mode="mean",
+                    N=N_NMC,
+                )
+            )
+
+            best_eig_mean = (
+                eig_values_mean.max()
+            )
+
+            eig_mean_steps[t].append(
+                best_eig_mean.item()
+            )
+
+
+            # ------------------------------------------------
+            # MARGINAL baseline
+            # ------------------------------------------------
+
+            eta_marg, eig_values_marg = (
+                choose_beam(
+                    eta_grid=eta_grid,
+                    a_grid=a_grid,
+                    s=s,
+                    sigma=sigma,
+                    p_theta=p_theta_marg,
+                    posterior=posterior_marg,
+                    rho_grid=rho_grid,
+                    mode="marginal",
+                    N=N_NMC,
+                )
+            )
+
+            best_eig_marg = (
+                eig_values_marg.max()
+            )
+
+            eig_marg_steps[t].append(
+                best_eig_marg.item()
+            )
+
+
+            # ------------------------------------------------
+            # Real measurements
+            # ------------------------------------------------
+
+            amp_mean = generate_real_observation(
+                theta_idx=theta_idx_true,
+                rho_true=rho_true,
+                eta=eta_mean,
+            )
+
+            amp_marg = generate_real_observation(
+                theta_idx=theta_idx_true,
+                rho_true=rho_true,
+                eta=eta_marg,
+            )
+
+
+            # ------------------------------------------------
+            # Exact posterior updates
+            #
+            # IMPORTANT:
+            #
+            # even "mean" uses the full joint posterior
+            # for inference.
+            #
+            # rho_mean is used ONLY for beam selection.
+            # ------------------------------------------------
+
+            posterior_mean = (
+                update_joint_posterior(
+                    posterior_mean,
+                    eta_mean,
+                    amp_mean,
+                )
+            )
+
+            posterior_marg = (
+                update_joint_posterior(
+                    posterior_marg,
+                    eta_marg,
+                    amp_marg,
+                )
+            )
+
+
+            # ------------------------------------------------
+            # Track posterior rho means
+            # ------------------------------------------------
+
+            p_rho_mean = (
+                posterior_mean.sum(
+                    dim=0
+                )
+            )
+
+            p_rho_marg = (
+                posterior_marg.sum(
+                    dim=0
+                )
+            )
+
+            rho_est_mean = torch.sum(
+                p_rho_mean
+                * rho_grid
+            )
+
+            rho_est_marg = torch.sum(
+                p_rho_marg
+                * rho_grid
+            )
+
+            rho_mean_steps[t].append(
+                rho_est_mean.item()
+            )
+
+            rho_marg_steps[t].append(
+                rho_est_marg.item()
+            )
+
+
+        # ====================================================
+        # Final theta estimates
+        # ====================================================
+
+        p_theta_mean = (
+            posterior_mean.sum(
+                dim=1
+            )
+        )
+
+        p_theta_marg = (
+            posterior_marg.sum(
+                dim=1
+            )
+        )
+
+        theta_hat_mean = torch.sum(
+            p_theta_mean
+            * theta_grid
+        )
+
+        theta_hat_marg = torch.sum(
+            p_theta_marg
+            * theta_grid
+        )
+
+        theta_error_mean.append(
+            math.degrees(
+                abs(
+                    (
+                        theta_hat_mean
+                        - theta_true
+                    ).item()
+                )
+            )
+        )
+
+        theta_error_marg.append(
+            math.degrees(
+                abs(
+                    (
+                        theta_hat_marg
+                        - theta_true
+                    ).item()
+                )
+            )
+        )
+
+
+        print(
+            f"trial "
+            f"{trial + 1:3d}/"
+            f"{N_TRAJECTORIES}"
+        )
+
+
+# ============================================================
+# Results
+# ============================================================
+
+print()
+print("=" * 90)
+print("NESTED MONTE CARLO: rho_mean vs rho marginalization")
+print("=" * 90)
+
+print(
+    f"{'t':>4} | "
+    f"{'EIG mean':>12} | "
+    f"{'EIG marginal':>14} | "
+    f"{'difference':>12}"
+)
+
+print("-" * 55)
+
+sum_mean = 0.0
+sum_marg = 0.0
+
+for t in range(T):
+
+    mean_eig = (
+        sum(eig_mean_steps[t])
+        / len(eig_mean_steps[t])
+    )
+
+    marg_eig = (
+        sum(eig_marg_steps[t])
+        / len(eig_marg_steps[t])
+    )
+
+    sum_mean += mean_eig
+    sum_marg += marg_eig
+
+    print(
+        f"{t + 1:4d} | "
+        f"{mean_eig:12.6f} | "
+        f"{marg_eig:14.6f} | "
+        f"{marg_eig - mean_eig:+12.6f}"
+    )
+
+
+print()
+print(
+    "Sum EIG mean     :",
+    f"{sum_mean:.6f}",
+)
+
+print(
+    "Sum EIG marginal :",
+    f"{sum_marg:.6f}",
+)
+
+print()
+
+print(
+    "Final theta MAE mean     :",
+    f"{sum(theta_error_mean)/len(theta_error_mean):.4f} deg",
+)
+
+print(
+    "Final theta MAE marginal :",
+    f"{sum(theta_error_marg)/len(theta_error_marg):.4f} deg",
+)
