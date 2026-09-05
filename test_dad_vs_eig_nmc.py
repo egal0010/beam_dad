@@ -646,6 +646,7 @@ with torch.no_grad():
                     a_grid=a_grid,
                     s=s,
                     snr_db=SNR_DB,
+                    sigma=sigma,
                     p_theta=p_theta,
                     posterior=posterior,
                     rho_grid=rho_grid,
@@ -810,7 +811,7 @@ with torch.no_grad():
             r_history=r_history,
             rho_grid=rho_grid,
             s=s,
-            sigma=sigma,
+            snr_db=SNR_DB,
             params=params,
         )
 
@@ -1289,7 +1290,7 @@ with torch.inference_mode():
             r_history=r_history,
             rho_grid=rho_grid,
             s=s,
-            sigma=sigma,
+            snr_db=SNR_DB,
             params=params,
         )
 
@@ -1455,8 +1456,8 @@ with torch.inference_mode():
                 a_grid=a_grid,
                 s=s,
                 snr_db=SNR_DB,
-                p_theta=p_theta,
-                rho_mean=rho_mean,
+                posterior=posterior,
+                rho_grid=rho_grid,
                 N=params.N,
             )
 
