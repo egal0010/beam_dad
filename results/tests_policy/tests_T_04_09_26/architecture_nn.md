@@ -1,5 +1,5 @@
 L'architecture du nn est comme suit :
-
+j'ai choisi N et M = 400.
 
 class Encoder(nn.Module):
 

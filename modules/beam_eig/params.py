@@ -10,8 +10,8 @@ class Params:
 
     freq: float = 28e9
 
-    M: int = 50
-    N: int = 50
+    M: int = 400
+    N: int = 400
     T: int = 10
 
     B: int = 2

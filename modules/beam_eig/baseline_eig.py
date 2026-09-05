@@ -2,7 +2,7 @@ import torch
 
 from modules.beam_eig.array_model import beam_from_phases
 from modules.beam_eig.posterior import compute_rho_mean
-from modules.beam_eig.simulator import simulate_y
+from modules.beam_eig.simulator import sigma_from_snr, simulate_y
 from modules.beam_eig.likelihood import (
     log_amplitude_vector_likelihood,
 )
@@ -158,7 +158,7 @@ def estimate_eig_for_eta_marginal(
     eta,
     a_grid,
     s,
-    sigma,
+    snr_db,
     posterior,
     rho_grid,
     N,
@@ -295,10 +295,16 @@ def estimate_eig_for_eta_marginal(
         * beam_response_samples
     )  # [N]
 
+    sigma_samples = sigma_from_snr(
+        s,
+        snr_db=snr_db,
+        rho_true=rho_samples,
+    )  # [N]
+
     y_samples = simulate_y(
         alpha_samples,
         s,
-        sigma,
+        sigma_samples,
     )
 
     amp_samples = torch.abs(
@@ -362,6 +368,17 @@ def estimate_eig_for_eta_marginal(
         # alpha            [1,L,Rc]
         #
         # result           [N,L,Rc]
+
+        sigma_chunk = sigma_from_snr(
+            s,
+            snr_db=snr_db,
+            rho_true=rho_chunk,
+        )  # [Rc]
+
+        sigma2_chunk = (
+            sigma_chunk**2
+        )[None, None, :, None]  # [1,1,Rc,1]
+
         log_like_chunk = (
             log_amplitude_vector_likelihood(
                 amp_samples[
@@ -371,7 +388,7 @@ def estimate_eig_for_eta_marginal(
                 alpha_chunk[
                     None, :, :
                 ],
-                sigma**2,
+                sigma2_chunk,
             )
         )
 

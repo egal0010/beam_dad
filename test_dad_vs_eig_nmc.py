@@ -21,6 +21,7 @@ from modules.beam_eig.codebook import (
 
 from modules.beam_eig.baseline_eig import (
     choose_beam,
+    estimate_eig_for_eta_marginal,
     estimate_eig_for_eta_mean,
 )
 
@@ -247,6 +248,7 @@ def print_summary(
     theta_errors,
     rho_errors,
     eig_sums,
+    eig_sums_recomputed,
     g_L_values,
     decision_times,
 ):
@@ -260,6 +262,10 @@ def print_summary(
 
     eig_sums = torch.tensor(
         eig_sums
+    )
+
+    eig_sums_recomputed = torch.tensor(
+        eig_sums_recomputed
     )
 
     g_L_values = torch.tensor(
@@ -302,6 +308,11 @@ def print_summary(
     print(
         f"Sum NMC EIG     : "
         f"{eig_sums.mean().item():.4f} nats"
+    )
+
+    print(
+        f"Sum NMC EIG recomputed : "
+        f"{eig_sums_recomputed.mean().item():.4f} nats"
     )
 
     print(
@@ -501,6 +512,7 @@ baseline_theta_errors = []
 baseline_rho_errors = []
 
 baseline_eig_sums = []
+baseline_eig_sums_recomputed = []
 baseline_eig_per_step = []
 
 baseline_g_L = []
@@ -512,6 +524,7 @@ dad_theta_errors = []
 dad_rho_errors = []
 
 dad_eig_sums = []
+dad_eig_sums_recomputed = []
 dad_eig_per_step = []
 
 dad_g_L = []
@@ -597,6 +610,7 @@ with torch.no_grad():
 
 
         eig_sum = 0.0
+        eig_sum_recomputed = 0.0
         eig_steps = []
 
 
@@ -635,7 +649,7 @@ with torch.no_grad():
                     p_theta=p_theta,
                     posterior=posterior,
                     rho_grid=rho_grid,
-                    mode="mean",
+                    mode="marginal",
                     N=params.N,
                 )
             )
@@ -653,6 +667,18 @@ with torch.no_grad():
             # --------------------------------------------
 
             eig_t = eig_values.max()
+
+            eig_recomputed= estimate_eig_for_eta_marginal(
+                eta=eta_star.squeeze(-1)[:, None],
+                a_grid=a_grid,
+                s=s,
+                snr_db=SNR_DB,
+                posterior=posterior,
+                rho_grid=rho_grid,
+                N=5000,
+            )
+
+            eig_sum_recomputed += eig_recomputed.item()
 
             eig_sum += eig_t.item()
 
@@ -803,6 +829,10 @@ with torch.no_grad():
 
         baseline_eig_sums.append(
             eig_sum
+        )
+
+        baseline_eig_sums_recomputed.append(
+            eig_sum_recomputed
         )
 
         baseline_eig_per_step.append(
@@ -1128,11 +1158,11 @@ with torch.inference_mode():
                 )
             )
 
-            eig_t = estimate_eig_for_eta_mean(
+            eig_t = estimate_eig_for_eta_marginal(
                 eta=eta_vec[:, None],
                 a_grid=a_grid,
                 s=s,
-                sigma=sigma,
+                snr_db=SNR_DB,
                 p_theta=p_theta,
                 rho_mean=rho_mean,
                 N=params.N,
@@ -1420,11 +1450,11 @@ with torch.inference_mode():
                 rho_grid,
             )
 
-            eig_t = estimate_eig_for_eta_mean(
+            eig_t = estimate_eig_for_eta_marginal(
                 eta=eta_vec[:, None],
                 a_grid=a_grid,
                 s=s,
-                sigma=sigma,
+                snr_db=SNR_DB,
                 p_theta=p_theta,
                 rho_mean=rho_mean,
                 N=params.N,
@@ -1578,6 +1608,9 @@ print_summary(
     eig_sums=(
         baseline_eig_sums
     ),
+    eig_sums_recomputed=(
+        baseline_eig_sums_recomputed
+    ),
     g_L_values=(
         baseline_g_L
     ),
@@ -1598,6 +1631,7 @@ print_summary(
     eig_sums=(
         dad_eig_sums
     ),
+    eig_sums_recomputed=(0.0,),
     g_L_values=(
         dad_g_L
     ),
@@ -1611,6 +1645,7 @@ print_summary(
     theta_errors=random_theta_errors,
     rho_errors=random_rho_errors,
     eig_sums=random_eig_sums,
+    eig_sums_recomputed=(0.0,),
     g_L_values=random_g_L,
     decision_times=random_decision_times,
 )
