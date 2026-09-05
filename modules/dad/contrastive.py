@@ -11,7 +11,7 @@ from modules.beam_eig.likelihood import (
     log_amplitude_vector_likelihood,
 )
 
-from modules.beam_eig.simulator import simulate_y
+from modules.beam_eig.simulator import (simulate_y,sigma_from_snr)
 
 
 def trajectory_log_likelihood(
@@ -229,7 +229,7 @@ def _to_real_tensor(
 def make_log_likelihood_fn(
     rho_grid,
     s,
-    sigma,
+    snr_db,
     params,
 ):
     """
@@ -244,12 +244,15 @@ def make_log_likelihood_fn(
         s,
     )
 
-    sigma = _to_real_tensor(
-        sigma,
-        s,
-    )
+    sigma_grid = sigma_from_snr(
+        s=s,
+        snr_db=snr_db,
+        rho_true=rho_grid,
+    )  # [R]
 
-    sigma2 = sigma**2
+    sigma2_grid = (
+        sigma_grid**2
+    )[None, None, :, None]  # [1,R,1]
 
     def log_likelihood_fn(
         theta,
@@ -301,8 +304,9 @@ def make_log_likelihood_fn(
             amp_vec=amp_vec,
             s=s,
             alpha=alpha,
-            sigma2=sigma2,
+            sigma2=sigma2_grid,
         )
+
 
         # [B, C, R]
 
@@ -312,7 +316,7 @@ def make_log_likelihood_fn(
 def make_observation_fn(
     rho,
     s,
-    sigma,
+    snr_db,
     params,
 ):
     """
@@ -326,10 +330,11 @@ def make_observation_fn(
         s,
     )
 
-    sigma = _to_real_tensor(
-        sigma,
-        s,
-    )
+    sigma = sigma_from_snr(
+        s=s,
+        snr_db=snr_db,
+        rho_true=rho,
+    )  # [R]
 
     def observation_fn(
         theta,
