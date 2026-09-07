@@ -1,0 +1,706 @@
+Ici, j'ai pris le cas où je choisis 120 beams au hasard, 8 antennes, et je fais un nested monte carlo à chaque fois sur l'eig pour ensuite choisir le meilleur beam.
+
+Quand on regarde la conclusion, on voit que rmse est grand (pas illogique, on prend 120 beams sur tout l'espace des beams possibles à 8 antennes, mais même comme ça, 
+si on regarde l'eig sum, ou g_L, ou l'erreur, on voit que c'est pas si mauvais)
+
+(beam_dad) egalarraga@beamsoperaserver1:~/beam_dad$ /home/egalarraga/.conda/envs/beam_dad/bin/python /home/egalarraga/beam_dad/test_dad_vs_eig_nmc.py
+Méthodes à tester : 1 = EIG / NMC, 2 = DAD (réseau), 3 = Random
+Combinaisons possibles : 1, 2, 3, 1 2, 1 3, 2 3 ou 1 2 3.
+Chaque méthode : erreurs finales, sum_eig et g_L. Seul le cas 1 sélectionne par EIG.
+Ton choix : 1 
+2Device: cuda | Antennes: 8 | T: 5 | Ns: 127
+EIG / NMC : 1 = exhaustif, 2 = aléatoire (phases continues)
+Sélection des beams : 2 ^[[D
+Choisis 1 ou 2.
+Sélection des beams : 2
+Nombre de beams aléatoires (1 à 16383) : 120
+Baseline beams: 120 | NMC N: 400
+
+============================================================
+EIG / NMC RANDOM SEARCH (120)
+============================================================
+Réalisation   1 | theta err =   1.555 deg | rho err = 0.0077 | sum EIG = 2.975 | g_L = 2.807
+Réalisation   2 | theta err =   1.207 deg | rho err = 0.0133 | sum EIG = 2.596 | g_L = 3.080
+Réalisation   3 | theta err =  10.190 deg | rho err = 0.0089 | sum EIG = 2.940 | g_L = 0.931
+Réalisation   4 | theta err =   1.837 deg | rho err = 0.0275 | sum EIG = 2.211 | g_L = 2.620
+Réalisation   5 | theta err =  61.248 deg | rho err = 0.0101 | sum EIG = 3.030 | g_L = 1.678
+Réalisation   6 | theta err =   4.103 deg | rho err = 0.0035 | sum EIG = 2.841 | g_L = 0.946
+Réalisation   7 | theta err =   1.350 deg | rho err = 0.0335 | sum EIG = 3.163 | g_L = 1.892
+Réalisation   8 | theta err =   0.718 deg | rho err = 0.0194 | sum EIG = 2.965 | g_L = 3.241
+Réalisation   9 | theta err =  11.268 deg | rho err = 0.0024 | sum EIG = 2.950 | g_L = 2.382
+Réalisation  10 | theta err =   1.595 deg | rho err = 0.0143 | sum EIG = 2.697 | g_L = 2.392
+Réalisation  11 | theta err =   2.010 deg | rho err = 0.0046 | sum EIG = 2.511 | g_L = 2.570
+Réalisation  12 | theta err =   0.741 deg | rho err = 0.0029 | sum EIG = 2.473 | g_L = 3.217
+Réalisation  13 | theta err =   8.410 deg | rho err = 0.0034 | sum EIG = 2.565 | g_L = 0.606
+Réalisation  14 | theta err =   0.897 deg | rho err = 0.0093 | sum EIG = 3.241 | g_L = 2.446
+Réalisation  15 | theta err =   1.453 deg | rho err = 0.0016 | sum EIG = 2.520 | g_L = 3.048
+Réalisation  16 | theta err =   9.887 deg | rho err = 0.0027 | sum EIG = 2.944 | g_L = 2.030
+Réalisation  17 | theta err =   0.902 deg | rho err = 0.0106 | sum EIG = 2.774 | g_L = 3.071
+Réalisation  18 | theta err =   1.506 deg | rho err = 0.0053 | sum EIG = 3.288 | g_L = 3.457
+Réalisation  19 | theta err =   3.660 deg | rho err = 0.0080 | sum EIG = 3.281 | g_L = 1.244
+Réalisation  20 | theta err =  24.182 deg | rho err = 0.0158 | sum EIG = 3.145 | g_L = 0.080
+Réalisation  21 | theta err =   7.116 deg | rho err = 0.0235 | sum EIG = 2.856 | g_L = -1.353
+Réalisation  22 | theta err =   4.996 deg | rho err = 0.0220 | sum EIG = 3.017 | g_L = -0.142
+Réalisation  23 | theta err =   3.814 deg | rho err = 0.0100 | sum EIG = 2.954 | g_L = 1.824
+Réalisation  24 | theta err =   2.586 deg | rho err = 0.0104 | sum EIG = 3.102 | g_L = 2.440
+Réalisation  25 | theta err =   1.665 deg | rho err = 0.0074 | sum EIG = 3.122 | g_L = 2.612
+Réalisation  26 | theta err =  30.969 deg | rho err = 0.0326 | sum EIG = 3.012 | g_L = 0.946
+Réalisation  27 | theta err =   0.866 deg | rho err = 0.0037 | sum EIG = 3.135 | g_L = 2.853
+Réalisation  28 | theta err =   0.705 deg | rho err = 0.0022 | sum EIG = 2.894 | g_L = 3.430
+Réalisation  29 | theta err =   1.972 deg | rho err = 0.0005 | sum EIG = 2.731 | g_L = 2.960
+Réalisation  30 | theta err =  37.310 deg | rho err = 0.0039 | sum EIG = 2.756 | g_L = -4.776
+Réalisation  31 | theta err =   1.898 deg | rho err = 0.0039 | sum EIG = 2.961 | g_L = 2.543
+Réalisation  32 | theta err =  87.050 deg | rho err = 0.0080 | sum EIG = 3.065 | g_L = 1.826
+Réalisation  33 | theta err =   0.065 deg | rho err = 0.0144 | sum EIG = 2.046 | g_L = 3.904
+Réalisation  34 | theta err =  59.902 deg | rho err = 0.0418 | sum EIG = 2.768 | g_L = 1.036
+Réalisation  35 | theta err =  37.205 deg | rho err = 0.0334 | sum EIG = 2.684 | g_L = 1.826
+Réalisation  36 | theta err =   4.224 deg | rho err = 0.0074 | sum EIG = 2.832 | g_L = -1.289
+Réalisation  37 | theta err =   4.136 deg | rho err = 0.0014 | sum EIG = 2.661 | g_L = -0.686
+Réalisation  38 | theta err =   0.114 deg | rho err = 0.0098 | sum EIG = 2.048 | g_L = 4.081
+Réalisation  39 | theta err =   5.529 deg | rho err = 0.0018 | sum EIG = 2.835 | g_L = 1.947
+Réalisation  40 | theta err =   2.414 deg | rho err = 0.0032 | sum EIG = 2.720 | g_L = 2.236
+Réalisation  41 | theta err =   8.199 deg | rho err = 0.0059 | sum EIG = 3.131 | g_L = -2.790
+Réalisation  42 | theta err =   1.325 deg | rho err = 0.0269 | sum EIG = 1.620 | g_L = 3.275
+Réalisation  43 | theta err =   0.777 deg | rho err = 0.0005 | sum EIG = 2.677 | g_L = 3.659
+Réalisation  44 | theta err =   0.301 deg | rho err = 0.0116 | sum EIG = 2.787 | g_L = 2.730
+Réalisation  45 | theta err =   0.441 deg | rho err = 0.0069 | sum EIG = 2.524 | g_L = 3.008
+Réalisation  46 | theta err =   0.472 deg | rho err = 0.0116 | sum EIG = 2.952 | g_L = 3.394
+Réalisation  47 | theta err =   0.381 deg | rho err = 0.0038 | sum EIG = 2.271 | g_L = 3.229
+Réalisation  48 | theta err =   2.340 deg | rho err = 0.0067 | sum EIG = 3.143 | g_L = 1.866
+Réalisation  49 | theta err =   0.897 deg | rho err = 0.0090 | sum EIG = 1.307 | g_L = 3.580
+Réalisation  50 | theta err =   0.193 deg | rho err = 0.0093 | sum EIG = 2.439 | g_L = 3.639
+Réalisation  51 | theta err =   1.993 deg | rho err = 0.0026 | sum EIG = 2.319 | g_L = 2.802
+Réalisation  52 | theta err =  25.878 deg | rho err = 0.0325 | sum EIG = 3.016 | g_L = 1.409
+Réalisation  53 | theta err =   1.543 deg | rho err = 0.0033 | sum EIG = 3.318 | g_L = 2.740
+Réalisation  54 | theta err =   0.557 deg | rho err = 0.0027 | sum EIG = 2.848 | g_L = 2.031
+Réalisation  55 | theta err =   1.512 deg | rho err = 0.0032 | sum EIG = 2.834 | g_L = 3.079
+Réalisation  56 | theta err =   1.006 deg | rho err = 0.0018 | sum EIG = 2.756 | g_L = 1.940
+Réalisation  57 | theta err =   0.241 deg | rho err = 0.0270 | sum EIG = 1.864 | g_L = 3.568
+Réalisation  58 | theta err =   1.157 deg | rho err = 0.0332 | sum EIG = 2.804 | g_L = 2.806
+Réalisation  59 | theta err =   3.350 deg | rho err = 0.0023 | sum EIG = 3.016 | g_L = 1.093
+Réalisation  60 | theta err =   0.354 deg | rho err = 0.0098 | sum EIG = 2.427 | g_L = 3.641
+Réalisation  61 | theta err =   1.310 deg | rho err = 0.0024 | sum EIG = 2.950 | g_L = 1.786
+Réalisation  62 | theta err =   1.695 deg | rho err = 0.0044 | sum EIG = 2.146 | g_L = 2.195
+Réalisation  63 | theta err =   3.260 deg | rho err = 0.0110 | sum EIG = 2.562 | g_L = 2.128
+Réalisation  64 | theta err =   1.026 deg | rho err = 0.0061 | sum EIG = 2.964 | g_L = 2.999
+Réalisation  65 | theta err =   0.580 deg | rho err = 0.0109 | sum EIG = 1.745 | g_L = 3.805
+Réalisation  66 | theta err =   1.806 deg | rho err = 0.0084 | sum EIG = 3.006 | g_L = 2.174
+Réalisation  67 | theta err =   0.700 deg | rho err = 0.0182 | sum EIG = 2.167 | g_L = 3.907
+Réalisation  68 | theta err =   0.466 deg | rho err = 0.0085 | sum EIG = 2.916 | g_L = 3.603
+Réalisation  69 | theta err =   0.359 deg | rho err = 0.0268 | sum EIG = 2.701 | g_L = 2.658
+Réalisation  70 | theta err =   0.732 deg | rho err = 0.0234 | sum EIG = 2.524 | g_L = 3.448
+Réalisation  71 | theta err =   1.136 deg | rho err = 0.0181 | sum EIG = 2.447 | g_L = 2.837
+Réalisation  72 | theta err =   8.343 deg | rho err = 0.0081 | sum EIG = 2.995 | g_L = 1.259
+Réalisation  73 | theta err =   4.640 deg | rho err = 0.0073 | sum EIG = 3.204 | g_L = 1.237
+Réalisation  74 | theta err =   4.471 deg | rho err = 0.0027 | sum EIG = 2.670 | g_L = 1.192
+Réalisation  75 | theta err =   2.103 deg | rho err = 0.0177 | sum EIG = 2.546 | g_L = 2.924
+Réalisation  76 | theta err =   0.541 deg | rho err = 0.0073 | sum EIG = 2.653 | g_L = 3.323
+Réalisation  77 | theta err =   1.288 deg | rho err = 0.0410 | sum EIG = 2.826 | g_L = 2.951
+Réalisation  78 | theta err =   1.660 deg | rho err = 0.0126 | sum EIG = 2.817 | g_L = 2.615
+Réalisation  79 | theta err =   0.976 deg | rho err = 0.0044 | sum EIG = 2.447 | g_L = 3.376
+Réalisation  80 | theta err =   0.504 deg | rho err = 0.0192 | sum EIG = 2.833 | g_L = 2.455
+Réalisation  81 | theta err =   0.565 deg | rho err = 0.0148 | sum EIG = 2.307 | g_L = 3.763
+Réalisation  82 | theta err =   1.534 deg | rho err = 0.0009 | sum EIG = 2.271 | g_L = 2.951
+Réalisation  83 | theta err =   0.739 deg | rho err = 0.0345 | sum EIG = 3.310 | g_L = 3.550
+Réalisation  84 | theta err =   1.644 deg | rho err = 0.0073 | sum EIG = 2.851 | g_L = 2.358
+Réalisation  85 | theta err =   0.299 deg | rho err = 0.0074 | sum EIG = 2.658 | g_L = 2.856
+Réalisation  86 | theta err =   5.503 deg | rho err = 0.0011 | sum EIG = 2.828 | g_L = 1.497
+Réalisation  87 | theta err =   3.769 deg | rho err = 0.0194 | sum EIG = 2.954 | g_L = 1.828
+Réalisation  88 | theta err =   6.429 deg | rho err = 0.0081 | sum EIG = 2.861 | g_L = -0.125
+Réalisation  89 | theta err =   1.967 deg | rho err = 0.0077 | sum EIG = 2.386 | g_L = 2.042
+Réalisation  90 | theta err =   1.066 deg | rho err = 0.0008 | sum EIG = 3.183 | g_L = 2.516
+Réalisation  91 | theta err =   1.334 deg | rho err = 0.0060 | sum EIG = 1.851 | g_L = 3.102
+Réalisation  92 | theta err =   2.953 deg | rho err = 0.0058 | sum EIG = 2.678 | g_L = 2.351
+Réalisation  93 | theta err =  57.317 deg | rho err = 0.0321 | sum EIG = 3.055 | g_L = 2.162
+Réalisation  94 | theta err =   3.408 deg | rho err = 0.0059 | sum EIG = 2.776 | g_L = 2.203
+Réalisation  95 | theta err =   0.003 deg | rho err = 0.0052 | sum EIG = 1.922 | g_L = 3.864
+Réalisation  96 | theta err =   0.885 deg | rho err = 0.0174 | sum EIG = 2.839 | g_L = 2.796
+Réalisation  97 | theta err =   0.872 deg | rho err = 0.0087 | sum EIG = 2.843 | g_L = 3.156
+Réalisation  98 | theta err =   0.363 deg | rho err = 0.0151 | sum EIG = 2.907 | g_L = 3.979
+Réalisation  99 | theta err =   4.048 deg | rho err = 0.0035 | sum EIG = 2.810 | g_L = 2.307
+Réalisation 100 | theta err =   0.572 deg | rho err = 0.0111 | sum EIG = 2.385 | g_L = 3.707
+Réalisation 101 | theta err =   0.685 deg | rho err = 0.0100 | sum EIG = 2.856 | g_L = 3.307
+Réalisation 102 | theta err =   1.076 deg | rho err = 0.0106 | sum EIG = 2.723 | g_L = 2.900
+Réalisation 103 | theta err =   5.148 deg | rho err = 0.0093 | sum EIG = 3.119 | g_L = -0.460
+Réalisation 104 | theta err =   1.900 deg | rho err = 0.0048 | sum EIG = 2.364 | g_L = 2.611
+Réalisation 105 | theta err =   0.201 deg | rho err = 0.0115 | sum EIG = 2.549 | g_L = 3.687
+Réalisation 106 | theta err =  43.136 deg | rho err = 0.0163 | sum EIG = 2.953 | g_L = 1.271
+Réalisation 107 | theta err =   0.425 deg | rho err = 0.0076 | sum EIG = 2.450 | g_L = 3.662
+Réalisation 108 | theta err =   1.519 deg | rho err = 0.0007 | sum EIG = 2.125 | g_L = 2.970
+Réalisation 109 | theta err =   1.653 deg | rho err = 0.0135 | sum EIG = 2.719 | g_L = 3.054
+Réalisation 110 | theta err =   2.221 deg | rho err = 0.0070 | sum EIG = 2.315 | g_L = 2.495
+Réalisation 111 | theta err =   0.736 deg | rho err = 0.0148 | sum EIG = 2.774 | g_L = 2.815
+Réalisation 112 | theta err =   0.385 deg | rho err = 0.0088 | sum EIG = 2.684 | g_L = 2.892
+Réalisation 113 | theta err =   0.293 deg | rho err = 0.0029 | sum EIG = 1.716 | g_L = 3.952
+Réalisation 114 | theta err =   9.263 deg | rho err = 0.0044 | sum EIG = 3.744 | g_L = -3.486
+Réalisation 115 | theta err =   0.215 deg | rho err = 0.0063 | sum EIG = 2.987 | g_L = 2.540
+Réalisation 116 | theta err =  11.284 deg | rho err = 0.0295 | sum EIG = 2.900 | g_L = 0.273
+Réalisation 117 | theta err =   2.330 deg | rho err = 0.0041 | sum EIG = 2.323 | g_L = -0.184
+Réalisation 118 | theta err =   3.117 deg | rho err = 0.0013 | sum EIG = 2.613 | g_L = 2.028
+Réalisation 119 | theta err =   1.246 deg | rho err = 0.0036 | sum EIG = 3.344 | g_L = 2.919
+Réalisation 120 | theta err =   1.871 deg | rho err = 0.0081 | sum EIG = 2.611 | g_L = 3.045
+Réalisation 121 | theta err =   0.600 deg | rho err = 0.0030 | sum EIG = 1.662 | g_L = 3.871
+Réalisation 122 | theta err =   2.160 deg | rho err = 0.0056 | sum EIG = 2.232 | g_L = 2.368
+Réalisation 123 | theta err =   0.543 deg | rho err = 0.0055 | sum EIG = 1.953 | g_L = 3.721
+Réalisation 124 | theta err =   1.975 deg | rho err = 0.0077 | sum EIG = 2.463 | g_L = 1.979
+Réalisation 125 | theta err =   1.326 deg | rho err = 0.0247 | sum EIG = 2.741 | g_L = 2.247
+Réalisation 126 | theta err =  64.812 deg | rho err = 0.0043 | sum EIG = 2.460 | g_L = -0.641
+Réalisation 127 | theta err =   1.380 deg | rho err = 0.0001 | sum EIG = 2.567 | g_L = 2.844
+Réalisation 128 | theta err =   0.022 deg | rho err = 0.0363 | sum EIG = 2.739 | g_L = 3.398
+Réalisation 129 | theta err =   0.061 deg | rho err = 0.0139 | sum EIG = 2.270 | g_L = 3.241
+Réalisation 130 | theta err =  24.573 deg | rho err = 0.0106 | sum EIG = 2.798 | g_L = -7.582
+Réalisation 131 | theta err =   3.365 deg | rho err = 0.0195 | sum EIG = 2.624 | g_L = 0.952
+Réalisation 132 | theta err =   0.665 deg | rho err = 0.0139 | sum EIG = 3.260 | g_L = 2.674
+Réalisation 133 | theta err =   0.364 deg | rho err = 0.0024 | sum EIG = 2.501 | g_L = 3.636
+Réalisation 134 | theta err =   0.125 deg | rho err = 0.0034 | sum EIG = 2.713 | g_L = 2.597
+Réalisation 135 | theta err =  28.858 deg | rho err = 0.0049 | sum EIG = 2.988 | g_L = -5.788
+Réalisation 136 | theta err =  30.184 deg | rho err = 0.0100 | sum EIG = 2.866 | g_L = 0.410
+Réalisation 137 | theta err =   1.748 deg | rho err = 0.0072 | sum EIG = 2.107 | g_L = 3.568
+Réalisation 138 | theta err =   0.804 deg | rho err = 0.0255 | sum EIG = 2.761 | g_L = 2.689
+Réalisation 139 | theta err =   1.367 deg | rho err = 0.0183 | sum EIG = 2.872 | g_L = 2.268
+Réalisation 140 | theta err =   0.541 deg | rho err = 0.0180 | sum EIG = 2.917 | g_L = 2.803
+Réalisation 141 | theta err =   1.702 deg | rho err = 0.0145 | sum EIG = 3.159 | g_L = 2.940
+Réalisation 142 | theta err =   1.907 deg | rho err = 0.0055 | sum EIG = 3.170 | g_L = 1.890
+Réalisation 143 | theta err =   0.197 deg | rho err = 0.0055 | sum EIG = 2.120 | g_L = 3.803
+Réalisation 144 | theta err =  41.929 deg | rho err = 0.0118 | sum EIG = 2.977 | g_L = 0.866
+Réalisation 145 | theta err =   0.203 deg | rho err = 0.0102 | sum EIG = 2.787 | g_L = 3.682
+Réalisation 146 | theta err =  92.008 deg | rho err = 0.0374 | sum EIG = 3.265 | g_L = 1.504
+Réalisation 147 | theta err =  68.712 deg | rho err = 0.0162 | sum EIG = 3.076 | g_L = 1.497
+Réalisation 148 | theta err =   1.470 deg | rho err = 0.0102 | sum EIG = 2.321 | g_L = 3.328
+Réalisation 149 | theta err =   0.692 deg | rho err = 0.0014 | sum EIG = 2.853 | g_L = 3.233
+Réalisation 150 | theta err =  60.168 deg | rho err = 0.0060 | sum EIG = 3.170 | g_L = 1.821
+Réalisation 151 | theta err =  62.071 deg | rho err = 0.0003 | sum EIG = 2.802 | g_L = 0.637
+Réalisation 152 | theta err =   2.178 deg | rho err = 0.0022 | sum EIG = 3.132 | g_L = 2.613
+Réalisation 153 | theta err =  79.287 deg | rho err = 0.0031 | sum EIG = 2.690 | g_L = -0.002
+Réalisation 154 | theta err =   0.926 deg | rho err = 0.0181 | sum EIG = 3.002 | g_L = 1.896
+Réalisation 155 | theta err =   0.369 deg | rho err = 0.0020 | sum EIG = 2.377 | g_L = 3.309
+Réalisation 156 | theta err =   0.241 deg | rho err = 0.0107 | sum EIG = 3.075 | g_L = 2.757
+Réalisation 157 | theta err =   0.678 deg | rho err = 0.0107 | sum EIG = 2.354 | g_L = 3.336
+Réalisation 158 | theta err =   0.987 deg | rho err = 0.0071 | sum EIG = 2.368 | g_L = 3.386
+Réalisation 159 | theta err =  11.624 deg | rho err = 0.0032 | sum EIG = 3.083 | g_L = 1.646
+Réalisation 160 | theta err =   9.058 deg | rho err = 0.0164 | sum EIG = 2.746 | g_L = 0.701
+Réalisation 161 | theta err =  23.895 deg | rho err = 0.0056 | sum EIG = 2.991 | g_L = 0.440
+Réalisation 162 | theta err =   0.268 deg | rho err = 0.0267 | sum EIG = 2.008 | g_L = 3.558
+Réalisation 163 | theta err =   0.015 deg | rho err = 0.0182 | sum EIG = 3.098 | g_L = 3.560
+Réalisation 164 | theta err =   3.449 deg | rho err = 0.0588 | sum EIG = 2.669 | g_L = 1.755
+Réalisation 165 | theta err =   0.690 deg | rho err = 0.0061 | sum EIG = 2.629 | g_L = 3.143
+Réalisation 166 | theta err =  11.955 deg | rho err = 0.0070 | sum EIG = 3.758 | g_L = -0.693
+Réalisation 167 | theta err =   2.823 deg | rho err = 0.0038 | sum EIG = 2.611 | g_L = 2.490
+Réalisation 168 | theta err =   4.400 deg | rho err = 0.0152 | sum EIG = 2.664 | g_L = -0.891
+Réalisation 169 | theta err =   0.036 deg | rho err = 0.0106 | sum EIG = 2.779 | g_L = 3.988
+Réalisation 170 | theta err =   8.174 deg | rho err = 0.0128 | sum EIG = 3.151 | g_L = -5.419
+Réalisation 171 | theta err =   0.163 deg | rho err = 0.0025 | sum EIG = 2.532 | g_L = 3.022
+Réalisation 172 | theta err =   0.402 deg | rho err = 0.0132 | sum EIG = 2.230 | g_L = 3.366
+Réalisation 173 | theta err =   0.550 deg | rho err = 0.0144 | sum EIG = 3.055 | g_L = 1.686
+Réalisation 174 | theta err =   2.034 deg | rho err = 0.0030 | sum EIG = 2.958 | g_L = 1.789
+Réalisation 175 | theta err =   1.426 deg | rho err = 0.0150 | sum EIG = 2.645 | g_L = 2.741
+Réalisation 176 | theta err =   0.467 deg | rho err = 0.0060 | sum EIG = 2.075 | g_L = 3.579
+Réalisation 177 | theta err =  31.414 deg | rho err = 0.0152 | sum EIG = 2.802 | g_L = 0.014
+Réalisation 178 | theta err =  49.968 deg | rho err = 0.0081 | sum EIG = 2.680 | g_L = -1.193
+Réalisation 179 | theta err =   1.780 deg | rho err = 0.0099 | sum EIG = 2.454 | g_L = 2.011
+Réalisation 180 | theta err =   1.093 deg | rho err = 0.0118 | sum EIG = 2.997 | g_L = 1.946
+Réalisation 181 | theta err =   0.647 deg | rho err = 0.0009 | sum EIG = 2.621 | g_L = 2.423
+Réalisation 182 | theta err =   1.349 deg | rho err = 0.0129 | sum EIG = 3.190 | g_L = 3.234
+Réalisation 183 | theta err =   0.972 deg | rho err = 0.0188 | sum EIG = 1.316 | g_L = 2.774
+Réalisation 184 | theta err =   1.800 deg | rho err = 0.0061 | sum EIG = 2.447 | g_L = 2.431
+Réalisation 185 | theta err =   1.171 deg | rho err = 0.0025 | sum EIG = 2.545 | g_L = 3.029
+Réalisation 186 | theta err =   0.414 deg | rho err = 0.0120 | sum EIG = 2.084 | g_L = 3.922
+Réalisation 187 | theta err =   1.242 deg | rho err = 0.0057 | sum EIG = 2.592 | g_L = 3.485
+Réalisation 188 | theta err =   1.946 deg | rho err = 0.0148 | sum EIG = 2.227 | g_L = 2.150
+Réalisation 189 | theta err =   2.036 deg | rho err = 0.0044 | sum EIG = 2.640 | g_L = 1.894
+Réalisation 190 | theta err =   1.467 deg | rho err = 0.0003 | sum EIG = 2.376 | g_L = 3.177
+Réalisation 191 | theta err =   0.775 deg | rho err = 0.0040 | sum EIG = 2.185 | g_L = 3.238
+Réalisation 192 | theta err =  82.743 deg | rho err = 0.0010 | sum EIG = 3.131 | g_L = -0.936
+Réalisation 193 | theta err =   1.259 deg | rho err = 0.0061 | sum EIG = 2.997 | g_L = 2.393
+Réalisation 194 | theta err =   1.521 deg | rho err = 0.0125 | sum EIG = 2.961 | g_L = 2.777
+Réalisation 195 | theta err =   0.755 deg | rho err = 0.0044 | sum EIG = 2.221 | g_L = 3.727
+Réalisation 196 | theta err =   0.429 deg | rho err = 0.0145 | sum EIG = 2.386 | g_L = 3.578
+Réalisation 197 | theta err =   1.699 deg | rho err = 0.0006 | sum EIG = 1.904 | g_L = 2.631
+Réalisation 198 | theta err =   0.237 deg | rho err = 0.0182 | sum EIG = 2.816 | g_L = 2.636
+Réalisation 199 | theta err =  52.692 deg | rho err = 0.0139 | sum EIG = 2.816 | g_L = 1.041
+Réalisation 200 | theta err =   2.611 deg | rho err = 0.0038 | sum EIG = 2.530 | g_L = 2.438
+
+
+============================================================
+DAD
+============================================================
+Réalisation   1 | theta err =  73.555 deg | rho err = 0.0077 | sum EIG = 3.386 | g_L = 1.992
+Réalisation   2 | theta err =  36.793 deg | rho err = 0.0061 | sum EIG = 1.537 | g_L = 0.841
+Réalisation   3 | theta err =   3.810 deg | rho err = 0.0089 | sum EIG = 3.024 | g_L = 2.101
+Réalisation   4 | theta err =   0.837 deg | rho err = 0.0081 | sum EIG = 2.941 | g_L = 2.901
+Réalisation   5 | theta err =   0.752 deg | rho err = 0.0101 | sum EIG = 1.921 | g_L = 3.356
+Réalisation   6 | theta err =   0.897 deg | rho err = 0.0228 | sum EIG = 1.871 | g_L = 3.430
+Réalisation   7 | theta err =   2.350 deg | rho err = 0.0052 | sum EIG = 2.862 | g_L = 2.525
+Réalisation   8 | theta err =   1.282 deg | rho err = 0.0000 | sum EIG = 2.108 | g_L = 2.935
+Réalisation   9 | theta err =   1.268 deg | rho err = 0.0218 | sum EIG = 2.092 | g_L = 3.100
+Réalisation  10 | theta err =   0.595 deg | rho err = 0.0143 | sum EIG = 2.212 | g_L = 3.076
+Réalisation  11 | theta err =   4.010 deg | rho err = 0.0046 | sum EIG = 3.023 | g_L = 0.950
+Réalisation  12 | theta err =   3.741 deg | rho err = 0.0223 | sum EIG = 2.793 | g_L = 1.279
+Réalisation  13 | theta err =   2.590 deg | rho err = 0.0034 | sum EIG = 3.015 | g_L = 2.146
+Réalisation  14 | theta err =   2.897 deg | rho err = 0.0093 | sum EIG = 1.652 | g_L = 2.356
+Réalisation  15 | theta err =   3.547 deg | rho err = 0.0016 | sum EIG = 2.833 | g_L = 2.109
+Réalisation  16 | theta err =   0.113 deg | rho err = 0.0027 | sum EIG = 1.551 | g_L = 3.159
+Réalisation  17 | theta err =  92.902 deg | rho err = 0.0088 | sum EIG = 3.143 | g_L = 0.264
+Réalisation  18 | theta err =  34.494 deg | rho err = 0.0053 | sum EIG = 2.356 | g_L = 1.752
+Réalisation  19 | theta err =   0.340 deg | rho err = 0.0114 | sum EIG = 0.812 | g_L = 4.082
+Réalisation  20 | theta err =   1.818 deg | rho err = 0.0158 | sum EIG = 2.215 | g_L = 2.732
+Réalisation  21 | theta err =  36.116 deg | rho err = 0.0235 | sum EIG = 2.216 | g_L = 2.100
+Réalisation  22 | theta err =   7.004 deg | rho err = 0.0168 | sum EIG = 2.872 | g_L = 1.107
+Réalisation  23 | theta err =   3.186 deg | rho err = 0.0100 | sum EIG = 2.895 | g_L = 1.684
+Réalisation  24 | theta err =   0.586 deg | rho err = 0.0104 | sum EIG = 2.011 | g_L = 3.434
+Réalisation  25 | theta err =   0.335 deg | rho err = 0.0074 | sum EIG = 2.338 | g_L = 3.915
+Réalisation  26 | theta err =   0.031 deg | rho err = 0.0132 | sum EIG = 1.742 | g_L = 3.611
+Réalisation  27 | theta err =  30.866 deg | rho err = 0.0037 | sum EIG = 2.618 | g_L = -1.252
+Réalisation  28 | theta err =   0.295 deg | rho err = 0.0022 | sum EIG = 0.850 | g_L = 3.464
+Réalisation  29 | theta err =   3.972 deg | rho err = 0.0005 | sum EIG = 2.476 | g_L = 1.455
+Réalisation  30 | theta err =   2.310 deg | rho err = 0.0155 | sum EIG = 2.511 | g_L = 1.929
+Réalisation  31 | theta err =   1.898 deg | rho err = 0.0039 | sum EIG = 1.993 | g_L = 2.617
+Réalisation  32 | theta err =   0.050 deg | rho err = 0.0080 | sum EIG = 2.772 | g_L = 3.348
+Réalisation  33 | theta err =   0.935 deg | rho err = 0.0144 | sum EIG = 2.927 | g_L = 3.316
+Réalisation  34 | theta err =  61.902 deg | rho err = 0.0030 | sum EIG = 2.804 | g_L = 2.361
+Réalisation  35 | theta err =   0.205 deg | rho err = 0.0140 | sum EIG = 2.221 | g_L = 3.367
+Réalisation  36 | theta err =  12.224 deg | rho err = 0.0074 | sum EIG = 2.086 | g_L = 0.737
+Réalisation  37 | theta err =   1.136 deg | rho err = 0.0014 | sum EIG = 2.235 | g_L = 3.049
+Réalisation  38 | theta err =   0.886 deg | rho err = 0.0096 | sum EIG = 2.576 | g_L = 3.487
+Réalisation  39 | theta err =   0.529 deg | rho err = 0.0176 | sum EIG = 1.784 | g_L = 3.194
+Réalisation  40 | theta err =   1.586 deg | rho err = 0.0032 | sum EIG = 2.807 | g_L = 2.819
+Réalisation  41 | theta err =  23.199 deg | rho err = 0.0059 | sum EIG = 2.403 | g_L = 1.082
+Réalisation  42 | theta err =  36.325 deg | rho err = 0.0313 | sum EIG = 3.176 | g_L = 1.466
+Réalisation  43 | theta err =   0.223 deg | rho err = 0.0005 | sum EIG = 2.394 | g_L = 3.086
+Réalisation  44 | theta err =   2.699 deg | rho err = 0.0116 | sum EIG = 2.098 | g_L = 1.190
+Réalisation  45 | theta err =   0.441 deg | rho err = 0.0069 | sum EIG = 3.243 | g_L = 3.139
+Réalisation  46 | theta err =   0.472 deg | rho err = 0.0078 | sum EIG = 2.614 | g_L = 2.754
+Réalisation  47 | theta err =   0.619 deg | rho err = 0.0232 | sum EIG = 2.195 | g_L = 3.431
+Réalisation  48 | theta err =   0.660 deg | rho err = 0.0067 | sum EIG = 3.096 | g_L = 3.474
+Réalisation  49 | theta err =   1.103 deg | rho err = 0.0090 | sum EIG = 2.336 | g_L = 2.737
+Réalisation  50 | theta err =   8.193 deg | rho err = 0.0101 | sum EIG = 2.022 | g_L = 2.434
+Réalisation  51 | theta err =   0.007 deg | rho err = 0.0026 | sum EIG = 1.599 | g_L = 3.689
+Réalisation  52 | theta err =   1.878 deg | rho err = 0.0132 | sum EIG = 3.070 | g_L = 2.708
+Réalisation  53 | theta err =   8.543 deg | rho err = 0.0033 | sum EIG = 2.741 | g_L = 1.024
+Réalisation  54 | theta err =   1.443 deg | rho err = 0.0167 | sum EIG = 2.902 | g_L = 2.863
+Réalisation  55 | theta err =   0.488 deg | rho err = 0.0032 | sum EIG = 3.478 | g_L = 2.612
+Réalisation  56 | theta err =   0.006 deg | rho err = 0.0018 | sum EIG = 1.804 | g_L = 3.414
+Réalisation  57 | theta err =  51.241 deg | rho err = 0.0076 | sum EIG = 2.882 | g_L = 1.503
+Réalisation  58 | theta err =  27.157 deg | rho err = 0.0138 | sum EIG = 3.143 | g_L = 1.659
+Réalisation  59 | theta err =   1.650 deg | rho err = 0.0023 | sum EIG = 2.357 | g_L = 2.545
+Réalisation  60 | theta err =   0.646 deg | rho err = 0.0098 | sum EIG = 3.024 | g_L = 3.490
+Réalisation  61 | theta err =   2.310 deg | rho err = 0.0024 | sum EIG = 3.215 | g_L = 2.149
+Réalisation  62 | theta err =   2.695 deg | rho err = 0.0044 | sum EIG = 2.083 | g_L = 1.979
+Réalisation  63 | theta err =   7.260 deg | rho err = 0.0497 | sum EIG = 1.910 | g_L = -0.239
+Réalisation  64 | theta err =  62.026 deg | rho err = 0.0255 | sum EIG = 3.128 | g_L = 2.332
+Réalisation  65 | theta err =  62.420 deg | rho err = 0.0085 | sum EIG = 3.221 | g_L = 2.072
+Réalisation  66 | theta err =   0.806 deg | rho err = 0.0084 | sum EIG = 3.040 | g_L = 2.626
+Réalisation  67 | theta err =   0.300 deg | rho err = 0.0182 | sum EIG = 3.014 | g_L = 3.730
+Réalisation  68 | theta err =   0.466 deg | rho err = 0.0085 | sum EIG = 2.682 | g_L = 3.477
+Réalisation  69 | theta err =   1.641 deg | rho err = 0.0074 | sum EIG = 2.823 | g_L = 1.584
+Réalisation  70 | theta err =   4.732 deg | rho err = 0.0040 | sum EIG = 3.185 | g_L = 1.267
+Réalisation  71 | theta err =   1.136 deg | rho err = 0.0375 | sum EIG = 2.590 | g_L = 2.764
+Réalisation  72 | theta err =   5.657 deg | rho err = 0.0081 | sum EIG = 2.585 | g_L = 1.152
+Réalisation  73 | theta err =  42.640 deg | rho err = 0.0121 | sum EIG = 2.952 | g_L = 0.158
+Réalisation  74 | theta err =   4.471 deg | rho err = 0.0027 | sum EIG = 1.740 | g_L = 0.646
+Réalisation  75 | theta err =   1.103 deg | rho err = 0.0177 | sum EIG = 2.905 | g_L = 3.293
+Réalisation  76 | theta err =   1.541 deg | rho err = 0.0121 | sum EIG = 3.410 | g_L = 2.851
+Réalisation  77 | theta err =   0.712 deg | rho err = 0.0216 | sum EIG = 1.819 | g_L = 3.351
+Réalisation  78 | theta err =  65.340 deg | rho err = 0.0126 | sum EIG = 2.963 | g_L = -0.065
+Réalisation  79 | theta err =   0.976 deg | rho err = 0.0150 | sum EIG = 2.854 | g_L = 3.400
+Réalisation  80 | theta err =   3.504 deg | rho err = 0.0192 | sum EIG = 2.977 | g_L = 2.192
+Réalisation  81 | theta err =  11.435 deg | rho err = 0.0046 | sum EIG = 2.993 | g_L = 1.625
+Réalisation  82 | theta err =   0.466 deg | rho err = 0.0009 | sum EIG = 1.421 | g_L = 3.564
+Réalisation  83 | theta err =   1.739 deg | rho err = 0.0345 | sum EIG = 2.101 | g_L = 2.499
+Réalisation  84 | theta err =   0.356 deg | rho err = 0.0073 | sum EIG = 2.795 | g_L = 3.450
+Réalisation  85 | theta err =   2.701 deg | rho err = 0.0120 | sum EIG = 3.375 | g_L = 2.520
+Réalisation  86 | theta err =   4.503 deg | rho err = 0.0011 | sum EIG = 2.587 | g_L = 1.958
+Réalisation  87 | theta err =   1.231 deg | rho err = 0.0000 | sum EIG = 2.274 | g_L = 3.291
+Réalisation  88 | theta err =   3.571 deg | rho err = 0.0081 | sum EIG = 3.456 | g_L = 2.098
+Réalisation  89 | theta err =   3.967 deg | rho err = 0.0077 | sum EIG = 2.872 | g_L = 1.815
+Réalisation  90 | theta err =   0.066 deg | rho err = 0.0008 | sum EIG = 3.148 | g_L = 2.484
+Réalisation  91 | theta err =  66.666 deg | rho err = 0.0060 | sum EIG = 2.227 | g_L = 2.785
+Réalisation  92 | theta err =   0.047 deg | rho err = 0.0058 | sum EIG = 2.589 | g_L = 2.733
+Réalisation  93 | theta err =   0.683 deg | rho err = 0.0127 | sum EIG = 2.886 | g_L = 3.243
+Réalisation  94 | theta err =   1.408 deg | rho err = 0.0059 | sum EIG = 2.419 | g_L = 2.727
+Réalisation  95 | theta err =  16.997 deg | rho err = 0.0052 | sum EIG = 2.414 | g_L = 2.321
+Réalisation  96 | theta err =   0.885 deg | rho err = 0.0174 | sum EIG = 2.216 | g_L = 2.624
+Réalisation  97 | theta err =   2.128 deg | rho err = 0.0107 | sum EIG = 1.633 | g_L = 2.238
+Réalisation  98 | theta err =   0.637 deg | rho err = 0.0043 | sum EIG = 2.826 | g_L = 3.673
+Réalisation  99 | theta err =   0.048 deg | rho err = 0.0035 | sum EIG = 1.959 | g_L = 2.763
+Réalisation 100 | theta err =   0.428 deg | rho err = 0.0111 | sum EIG = 1.862 | g_L = 3.500
+Réalisation 101 | theta err =   0.685 deg | rho err = 0.0094 | sum EIG = 2.493 | g_L = 3.195
+Réalisation 102 | theta err =   0.924 deg | rho err = 0.0106 | sum EIG = 2.723 | g_L = 3.184
+Réalisation 103 | theta err =  25.148 deg | rho err = 0.0093 | sum EIG = 2.146 | g_L = 0.124
+Réalisation 104 | theta err =   0.900 deg | rho err = 0.0048 | sum EIG = 3.108 | g_L = 3.082
+Réalisation 105 | theta err =   1.799 deg | rho err = 0.0309 | sum EIG = 2.258 | g_L = 2.905
+Réalisation 106 | theta err =   0.864 deg | rho err = 0.0031 | sum EIG = 2.003 | g_L = 3.175
+Réalisation 107 | theta err =   0.425 deg | rho err = 0.0076 | sum EIG = 2.628 | g_L = 2.484
+Réalisation 108 | theta err =   5.481 deg | rho err = 0.0007 | sum EIG = 2.777 | g_L = 1.995
+Réalisation 109 | theta err =   0.347 deg | rho err = 0.0059 | sum EIG = 3.234 | g_L = 3.112
+Réalisation 110 | theta err =   2.221 deg | rho err = 0.0070 | sum EIG = 2.583 | g_L = 2.529
+Réalisation 111 | theta err =   0.736 deg | rho err = 0.0148 | sum EIG = 2.951 | g_L = 3.255
+Réalisation 112 | theta err =   0.615 deg | rho err = 0.0106 | sum EIG = 1.655 | g_L = 3.091
+Réalisation 113 | theta err =   0.293 deg | rho err = 0.0029 | sum EIG = 2.896 | g_L = 2.837
+Réalisation 114 | theta err =   0.263 deg | rho err = 0.0044 | sum EIG = 1.499 | g_L = 3.259
+Réalisation 115 | theta err =  82.215 deg | rho err = 0.0131 | sum EIG = 2.782 | g_L = 1.958
+Réalisation 116 | theta err =   4.716 deg | rho err = 0.0295 | sum EIG = 2.937 | g_L = 0.661
+Réalisation 117 | theta err =   0.330 deg | rho err = 0.0041 | sum EIG = 1.434 | g_L = 2.670
+Réalisation 118 | theta err =   0.883 deg | rho err = 0.0013 | sum EIG = 1.447 | g_L = 3.438
+Réalisation 119 | theta err =   0.754 deg | rho err = 0.0036 | sum EIG = 3.333 | g_L = 3.240
+Réalisation 120 | theta err =   0.871 deg | rho err = 0.0113 | sum EIG = 1.487 | g_L = 3.077
+Réalisation 121 | theta err =   4.600 deg | rho err = 0.0030 | sum EIG = 3.019 | g_L = 0.467
+Réalisation 122 | theta err =   1.840 deg | rho err = 0.0138 | sum EIG = 1.372 | g_L = 2.218
+Réalisation 123 | theta err =   1.543 deg | rho err = 0.0055 | sum EIG = 3.243 | g_L = 2.817
+Réalisation 124 | theta err =   7.975 deg | rho err = 0.0077 | sum EIG = 2.815 | g_L = -0.513
+Réalisation 125 | theta err =  17.326 deg | rho err = 0.0440 | sum EIG = 2.256 | g_L = -0.763
+Réalisation 126 | theta err =   1.188 deg | rho err = 0.0043 | sum EIG = 2.234 | g_L = 2.816
+Réalisation 127 | theta err =   0.380 deg | rho err = 0.0001 | sum EIG = 3.096 | g_L = 2.485
+Réalisation 128 | theta err =   0.978 deg | rho err = 0.0169 | sum EIG = 2.237 | g_L = 2.856
+Réalisation 129 | theta err =   0.939 deg | rho err = 0.0139 | sum EIG = 3.126 | g_L = 3.091
+Réalisation 130 | theta err =   1.573 deg | rho err = 0.0088 | sum EIG = 1.669 | g_L = 2.685
+Réalisation 131 | theta err =   1.365 deg | rho err = 0.0195 | sum EIG = 2.980 | g_L = 2.850
+Réalisation 132 | theta err =   0.665 deg | rho err = 0.0139 | sum EIG = 2.683 | g_L = 3.482
+Réalisation 133 | theta err =   1.636 deg | rho err = 0.0024 | sum EIG = 2.267 | g_L = 2.803
+Réalisation 134 | theta err =   1.125 deg | rho err = 0.0034 | sum EIG = 2.272 | g_L = 2.879
+Réalisation 135 | theta err =   3.858 deg | rho err = 0.0049 | sum EIG = 1.604 | g_L = 1.819
+Réalisation 136 | theta err =   0.816 deg | rho err = 0.0094 | sum EIG = 3.167 | g_L = 2.860
+Réalisation 137 | theta err =   1.748 deg | rho err = 0.0121 | sum EIG = 2.499 | g_L = 2.890
+Réalisation 138 | theta err =  36.804 deg | rho err = 0.0255 | sum EIG = 2.996 | g_L = 0.310
+Réalisation 139 | theta err =   0.633 deg | rho err = 0.0010 | sum EIG = 2.274 | g_L = 3.525
+Réalisation 140 | theta err =   1.541 deg | rho err = 0.0180 | sum EIG = 3.250 | g_L = 2.643
+Réalisation 141 | theta err =   0.298 deg | rho err = 0.0049 | sum EIG = 1.227 | g_L = 3.583
+Réalisation 142 | theta err =   0.093 deg | rho err = 0.0055 | sum EIG = 2.366 | g_L = 3.505
+Réalisation 143 | theta err =   1.197 deg | rho err = 0.0055 | sum EIG = 2.458 | g_L = 3.133
+Réalisation 144 | theta err =   0.929 deg | rho err = 0.0076 | sum EIG = 1.999 | g_L = 2.758
+Réalisation 145 | theta err =   0.797 deg | rho err = 0.0091 | sum EIG = 2.704 | g_L = 3.250
+Réalisation 146 | theta err =   2.008 deg | rho err = 0.0014 | sum EIG = 1.672 | g_L = 2.615
+Réalisation 147 | theta err =   3.288 deg | rho err = 0.0162 | sum EIG = 2.429 | g_L = 2.581
+Réalisation 148 | theta err =  15.470 deg | rho err = 0.0102 | sum EIG = 2.265 | g_L = 1.553
+Réalisation 149 | theta err =   0.692 deg | rho err = 0.0014 | sum EIG = 2.496 | g_L = 3.201
+Réalisation 150 | theta err =   2.168 deg | rho err = 0.0060 | sum EIG = 1.277 | g_L = 2.857
+Réalisation 151 | theta err =   1.071 deg | rho err = 0.0197 | sum EIG = 2.645 | g_L = 1.875
+Réalisation 152 | theta err =   0.822 deg | rho err = 0.0172 | sum EIG = 2.432 | g_L = 3.297
+Réalisation 153 | theta err =  15.713 deg | rho err = 0.0031 | sum EIG = 2.996 | g_L = -2.555
+Réalisation 154 | theta err =   0.926 deg | rho err = 0.0181 | sum EIG = 1.859 | g_L = 3.134
+Réalisation 155 | theta err =   0.369 deg | rho err = 0.0020 | sum EIG = 1.234 | g_L = 3.733
+Réalisation 156 | theta err =   0.241 deg | rho err = 0.0107 | sum EIG = 2.963 | g_L = 2.818
+Réalisation 157 | theta err =   0.678 deg | rho err = 0.0107 | sum EIG = 2.941 | g_L = 3.096
+Réalisation 158 | theta err =   1.987 deg | rho err = 0.0071 | sum EIG = 2.680 | g_L = 2.631
+Réalisation 159 | theta err =   4.376 deg | rho err = 0.0162 | sum EIG = 2.596 | g_L = 2.213
+Réalisation 160 | theta err =   0.942 deg | rho err = 0.0030 | sum EIG = 1.530 | g_L = 2.957
+Réalisation 161 | theta err =   1.895 deg | rho err = 0.0056 | sum EIG = 3.278 | g_L = 1.542
+Réalisation 162 | theta err =  27.732 deg | rho err = 0.0267 | sum EIG = 3.126 | g_L = 1.465
+Réalisation 163 | theta err =   1.015 deg | rho err = 0.0012 | sum EIG = 1.835 | g_L = 3.580
+Réalisation 164 | theta err =   1.551 deg | rho err = 0.0394 | sum EIG = 3.136 | g_L = 2.471
+Réalisation 165 | theta err =   0.310 deg | rho err = 0.0255 | sum EIG = 1.304 | g_L = 3.613
+Réalisation 166 | theta err =   0.955 deg | rho err = 0.0124 | sum EIG = 2.475 | g_L = 3.128
+Réalisation 167 | theta err =   0.823 deg | rho err = 0.0038 | sum EIG = 2.764 | g_L = 2.942
+Réalisation 168 | theta err =   0.400 deg | rho err = 0.0152 | sum EIG = 1.833 | g_L = 3.302
+Réalisation 169 | theta err =   1.036 deg | rho err = 0.0106 | sum EIG = 1.701 | g_L = 2.956
+Réalisation 170 | theta err =   6.174 deg | rho err = 0.0128 | sum EIG = 2.202 | g_L = 0.590
+Réalisation 171 | theta err =   2.163 deg | rho err = 0.0219 | sum EIG = 2.986 | g_L = 2.697
+Réalisation 172 | theta err =   2.598 deg | rho err = 0.0132 | sum EIG = 3.300 | g_L = 2.670
+Réalisation 173 | theta err =   0.550 deg | rho err = 0.0144 | sum EIG = 2.793 | g_L = 2.599
+Réalisation 174 | theta err =   2.034 deg | rho err = 0.0030 | sum EIG = 2.633 | g_L = 1.263
+Réalisation 175 | theta err =   1.426 deg | rho err = 0.0237 | sum EIG = 0.952 | g_L = 2.926
+Réalisation 176 | theta err =   3.533 deg | rho err = 0.0060 | sum EIG = 3.016 | g_L = 0.726
+Réalisation 177 | theta err =   1.414 deg | rho err = 0.0152 | sum EIG = 3.003 | g_L = 2.199
+Réalisation 178 | theta err =   1.032 deg | rho err = 0.0081 | sum EIG = 1.564 | g_L = 3.121
+Réalisation 179 | theta err =   0.220 deg | rho err = 0.0095 | sum EIG = 1.683 | g_L = 3.166
+Réalisation 180 | theta err =   0.907 deg | rho err = 0.0118 | sum EIG = 3.399 | g_L = 3.221
+Réalisation 181 | theta err =   0.647 deg | rho err = 0.0009 | sum EIG = 2.306 | g_L = 2.914
+Réalisation 182 | theta err =   1.349 deg | rho err = 0.0129 | sum EIG = 3.286 | g_L = 2.975
+Réalisation 183 | theta err =  26.972 deg | rho err = 0.0200 | sum EIG = 3.267 | g_L = -0.252
+Réalisation 184 | theta err =   0.200 deg | rho err = 0.0061 | sum EIG = 2.700 | g_L = 3.223
+Réalisation 185 | theta err =   1.829 deg | rho err = 0.0025 | sum EIG = 2.222 | g_L = 2.717
+Réalisation 186 | theta err =   0.414 deg | rho err = 0.0314 | sum EIG = 2.950 | g_L = 2.865
+Réalisation 187 | theta err =  52.242 deg | rho err = 0.0137 | sum EIG = 3.133 | g_L = 2.229
+Réalisation 188 | theta err =   3.054 deg | rho err = 0.0148 | sum EIG = 3.009 | g_L = 1.800
+Réalisation 189 | theta err =   3.964 deg | rho err = 0.0044 | sum EIG = 2.377 | g_L = 2.537
+Réalisation 190 | theta err =   2.467 deg | rho err = 0.0003 | sum EIG = 2.892 | g_L = 2.491
+Réalisation 191 | theta err =   0.775 deg | rho err = 0.0040 | sum EIG = 2.700 | g_L = 3.050
+Réalisation 192 | theta err =   2.743 deg | rho err = 0.0010 | sum EIG = 2.900 | g_L = 1.836
+Réalisation 193 | theta err =   2.259 deg | rho err = 0.0061 | sum EIG = 2.902 | g_L = 2.361
+Réalisation 194 | theta err =   1.521 deg | rho err = 0.0125 | sum EIG = 2.869 | g_L = 2.671
+Réalisation 195 | theta err =   0.755 deg | rho err = 0.0044 | sum EIG = 2.330 | g_L = 3.300
+Réalisation 196 | theta err =   0.571 deg | rho err = 0.0145 | sum EIG = 2.457 | g_L = 3.537
+Réalisation 197 | theta err =   0.699 deg | rho err = 0.0006 | sum EIG = 2.990 | g_L = 3.124
+Réalisation 198 | theta err =   0.237 deg | rho err = 0.0182 | sum EIG = 2.085 | g_L = 3.355
+Réalisation 199 | theta err =   1.308 deg | rho err = 0.0139 | sum EIG = 2.850 | g_L = 2.526
+Réalisation 200 | theta err =   3.611 deg | rho err = 0.0232 | sum EIG = 1.670 | g_L = 1.916
+
+============================================================
+RANDOM CONTINUOUS
+============================================================
+Réalisation   1 | theta err =   1.445 deg | rho err = 0.0077 | sum EIG = 1.277 | g_L = 2.692
+Réalisation   2 | theta err =  71.793 deg | rho err = 0.0133 | sum EIG = 1.789 | g_L = 1.074
+Réalisation   3 | theta err =   5.190 deg | rho err = 0.0089 | sum EIG = 1.644 | g_L = 2.355
+Réalisation   4 | theta err =   0.837 deg | rho err = 0.0081 | sum EIG = 0.883 | g_L = 2.838
+Réalisation   5 | theta err =  24.248 deg | rho err = 0.0101 | sum EIG = 1.590 | g_L = 1.220
+Réalisation   6 | theta err =   1.897 deg | rho err = 0.0035 | sum EIG = 1.604 | g_L = 1.364
+Réalisation   7 | theta err =  65.350 deg | rho err = 0.0440 | sum EIG = 1.605 | g_L = -0.188
+Réalisation   8 | theta err =  42.282 deg | rho err = 0.0193 | sum EIG = 1.220 | g_L = 0.376
+Réalisation   9 | theta err =   2.732 deg | rho err = 0.0218 | sum EIG = 0.745 | g_L = 2.720
+Réalisation  10 | theta err =   3.595 deg | rho err = 0.0337 | sum EIG = 1.610 | g_L = 1.658
+Réalisation  11 | theta err =  10.990 deg | rho err = 0.0433 | sum EIG = 1.299 | g_L = 0.301
+Réalisation  12 | theta err =  44.741 deg | rho err = 0.0029 | sum EIG = 1.180 | g_L = 1.226
+Réalisation  13 | theta err =  33.590 deg | rho err = 0.0228 | sum EIG = 1.828 | g_L = 0.689
+Réalisation  14 | theta err =   4.897 deg | rho err = 0.0093 | sum EIG = 1.847 | g_L = 1.616
+Réalisation  15 | theta err =   2.453 deg | rho err = 0.0016 | sum EIG = 1.141 | g_L = 1.876
+Réalisation  16 | theta err =   3.113 deg | rho err = 0.0027 | sum EIG = 1.804 | g_L = 2.256
+Réalisation  17 | theta err =  74.902 deg | rho err = 0.0282 | sum EIG = 0.871 | g_L = 0.084
+Réalisation  18 | theta err =  67.494 deg | rho err = 0.0141 | sum EIG = 1.839 | g_L = -0.416
+Réalisation  19 | theta err =  20.660 deg | rho err = 0.0274 | sum EIG = 1.270 | g_L = -0.244
+Réalisation  20 | theta err =  61.182 deg | rho err = 0.0158 | sum EIG = 1.136 | g_L = 1.370
+Réalisation  21 | theta err =  61.116 deg | rho err = 0.0235 | sum EIG = 1.297 | g_L = -1.914
+Réalisation  22 | theta err =   0.004 deg | rho err = 0.0026 | sum EIG = 1.140 | g_L = 1.971
+Réalisation  23 | theta err =   1.186 deg | rho err = 0.0100 | sum EIG = 1.311 | g_L = 1.552
+Réalisation  24 | theta err =  84.586 deg | rho err = 0.0298 | sum EIG = 1.215 | g_L = 1.540
+Réalisation  25 | theta err =   3.335 deg | rho err = 0.0074 | sum EIG = 1.372 | g_L = 1.665
+Réalisation  26 | theta err =  54.969 deg | rho err = 0.0326 | sum EIG = 1.195 | g_L = 0.109
+Réalisation  27 | theta err =  21.866 deg | rho err = 0.0157 | sum EIG = 0.900 | g_L = -0.324
+Réalisation  28 | theta err =   0.705 deg | rho err = 0.0022 | sum EIG = 1.433 | g_L = 3.015
+Réalisation  29 | theta err =  12.972 deg | rho err = 0.0005 | sum EIG = 1.088 | g_L = 1.261
+Réalisation  30 | theta err =  45.310 deg | rho err = 0.0039 | sum EIG = 1.724 | g_L = -2.008
+Réalisation  31 | theta err =   4.102 deg | rho err = 0.0039 | sum EIG = 1.417 | g_L = 1.940
+Réalisation  32 | theta err =   2.950 deg | rho err = 0.0114 | sum EIG = 1.343 | g_L = 2.621
+Réalisation  33 | theta err =   1.065 deg | rho err = 0.0144 | sum EIG = 1.146 | g_L = 2.327
+Réalisation  34 | theta err =  86.902 deg | rho err = 0.0030 | sum EIG = 1.510 | g_L = -0.024
+Réalisation  35 | theta err =  25.205 deg | rho err = 0.0334 | sum EIG = 1.471 | g_L = 0.759
+Réalisation  36 | theta err =  10.776 deg | rho err = 0.0074 | sum EIG = 1.730 | g_L = -1.361
+Réalisation  37 | theta err =   0.864 deg | rho err = 0.0208 | sum EIG = 1.065 | g_L = 3.156
+Réalisation  38 | theta err =  89.886 deg | rho err = 0.0096 | sum EIG = 1.609 | g_L = 1.326
+Réalisation  39 | theta err =  18.471 deg | rho err = 0.0018 | sum EIG = 2.033 | g_L = -1.619
+Réalisation  40 | theta err =   0.586 deg | rho err = 0.0032 | sum EIG = 1.284 | g_L = 1.663
+Réalisation  41 | theta err =   0.199 deg | rho err = 0.0059 | sum EIG = 1.117 | g_L = 3.296
+Réalisation  42 | theta err =  60.675 deg | rho err = 0.0463 | sum EIG = 1.711 | g_L = 0.893
+Réalisation  43 | theta err = 108.223 deg | rho err = 0.0005 | sum EIG = 1.012 | g_L = 0.593
+Réalisation  44 | theta err =  26.699 deg | rho err = 0.0116 | sum EIG = 1.314 | g_L = 0.322
+Réalisation  45 | theta err =  51.441 deg | rho err = 0.0125 | sum EIG = 1.458 | g_L = -0.550
+Réalisation  46 | theta err =  53.528 deg | rho err = 0.0116 | sum EIG = 1.660 | g_L = -1.064
+Réalisation  47 | theta err =   2.619 deg | rho err = 0.0038 | sum EIG = 1.636 | g_L = 1.697
+Réalisation  48 | theta err =  89.660 deg | rho err = 0.0067 | sum EIG = 1.560 | g_L = -0.707
+Réalisation  49 | theta err =  72.897 deg | rho err = 0.0284 | sum EIG = 1.430 | g_L = 0.315
+Réalisation  50 | theta err =  57.193 deg | rho err = 0.0093 | sum EIG = 0.806 | g_L = -0.993
+Réalisation  51 | theta err =  21.993 deg | rho err = 0.0026 | sum EIG = 1.445 | g_L = -0.194
+Réalisation  52 | theta err =   1.878 deg | rho err = 0.0132 | sum EIG = 1.149 | g_L = 1.594
+Réalisation  53 | theta err =   4.457 deg | rho err = 0.0033 | sum EIG = 1.308 | g_L = 0.988
+Réalisation  54 | theta err =   3.443 deg | rho err = 0.0027 | sum EIG = 1.157 | g_L = 0.775
+Réalisation  55 | theta err =   0.512 deg | rho err = 0.0032 | sum EIG = 1.290 | g_L = 2.037
+Réalisation  56 | theta err =   0.006 deg | rho err = 0.0018 | sum EIG = 2.001 | g_L = 2.028
+Réalisation  57 | theta err =  85.241 deg | rho err = 0.0076 | sum EIG = 1.261 | g_L = 0.658
+Réalisation  58 | theta err =   1.843 deg | rho err = 0.0332 | sum EIG = 1.104 | g_L = 2.555
+Réalisation  59 | theta err =  68.650 deg | rho err = 0.0023 | sum EIG = 1.688 | g_L = 0.586
+Réalisation  60 | theta err =  38.354 deg | rho err = 0.0292 | sum EIG = 1.273 | g_L = -0.262
+Réalisation  61 | theta err =  60.690 deg | rho err = 0.0024 | sum EIG = 1.272 | g_L = 1.489
+Réalisation  62 | theta err =   1.305 deg | rho err = 0.0237 | sum EIG = 1.591 | g_L = 2.844
+Réalisation  63 | theta err =  70.260 deg | rho err = 0.0304 | sum EIG = 1.369 | g_L = -0.594
+Réalisation  64 | theta err =   2.026 deg | rho err = 0.0061 | sum EIG = 1.194 | g_L = 2.256
+Réalisation  65 | theta err =   2.420 deg | rho err = 0.0085 | sum EIG = 1.155 | g_L = 2.715
+Réalisation  66 | theta err =   0.194 deg | rho err = 0.0109 | sum EIG = 1.144 | g_L = 1.963
+Réalisation  67 | theta err =  43.700 deg | rho err = 0.0182 | sum EIG = 1.390 | g_L = 1.163
+Réalisation  68 | theta err =  50.534 deg | rho err = 0.0085 | sum EIG = 1.148 | g_L = -0.810
+Réalisation  69 | theta err =  42.641 deg | rho err = 0.0268 | sum EIG = 1.261 | g_L = 0.583
+Réalisation  70 | theta err =   3.268 deg | rho err = 0.0040 | sum EIG = 1.998 | g_L = 1.109
+Réalisation  71 | theta err =  54.136 deg | rho err = 0.0375 | sum EIG = 1.008 | g_L = 0.929
+Réalisation  72 | theta err =  63.657 deg | rho err = 0.0081 | sum EIG = 1.276 | g_L = 0.570
+Réalisation  73 | theta err =  80.640 deg | rho err = 0.0315 | sum EIG = 0.838 | g_L = -3.086
+Réalisation  74 | theta err =   5.471 deg | rho err = 0.0027 | sum EIG = 1.073 | g_L = 0.241
+Réalisation  75 | theta err =   0.103 deg | rho err = 0.0177 | sum EIG = 1.483 | g_L = 2.963
+Réalisation  76 | theta err =   6.541 deg | rho err = 0.0073 | sum EIG = 1.577 | g_L = 1.671
+Réalisation  77 | theta err =  49.712 deg | rho err = 0.0216 | sum EIG = 1.052 | g_L = 1.058
+Réalisation  78 | theta err =  28.660 deg | rho err = 0.0067 | sum EIG = 0.884 | g_L = 0.823
+Réalisation  79 | theta err =   1.024 deg | rho err = 0.0044 | sum EIG = 1.192 | g_L = 2.753
+Réalisation  80 | theta err =   2.496 deg | rho err = 0.0002 | sum EIG = 1.510 | g_L = 1.356
+Réalisation  81 | theta err =   1.565 deg | rho err = 0.0046 | sum EIG = 1.231 | g_L = 2.357
+Réalisation  82 | theta err =  11.466 deg | rho err = 0.0009 | sum EIG = 1.228 | g_L = 0.574
+Réalisation  83 | theta err =  23.261 deg | rho err = 0.0345 | sum EIG = 0.595 | g_L = 0.605
+Réalisation  84 | theta err =  22.356 deg | rho err = 0.0073 | sum EIG = 1.373 | g_L = 1.098
+Réalisation  85 | theta err =   2.701 deg | rho err = 0.0074 | sum EIG = 1.597 | g_L = 1.982
+Réalisation  86 | theta err =   0.497 deg | rho err = 0.0183 | sum EIG = 1.545 | g_L = 3.465
+Réalisation  87 | theta err =   2.769 deg | rho err = 0.0000 | sum EIG = 1.587 | g_L = 1.793
+Réalisation  88 | theta err =  61.429 deg | rho err = 0.0113 | sum EIG = 1.243 | g_L = 0.437
+Réalisation  89 | theta err =  74.967 deg | rho err = 0.0077 | sum EIG = 1.300 | g_L = 0.353
+Réalisation  90 | theta err =   8.066 deg | rho err = 0.0396 | sum EIG = 0.991 | g_L = 0.788
+Réalisation  91 | theta err =  61.666 deg | rho err = 0.0060 | sum EIG = 0.835 | g_L = 0.370
+Réalisation  92 | theta err =  69.953 deg | rho err = 0.0058 | sum EIG = 1.198 | g_L = 1.744
+Réalisation  93 | theta err =   6.683 deg | rho err = 0.0321 | sum EIG = 1.440 | g_L = 1.382
+Réalisation  94 | theta err =  29.408 deg | rho err = 0.0059 | sum EIG = 1.701 | g_L = 1.517
+Réalisation  95 | theta err =   4.997 deg | rho err = 0.0052 | sum EIG = 1.345 | g_L = 0.860
+Réalisation  96 | theta err =   1.115 deg | rho err = 0.0174 | sum EIG = 1.170 | g_L = 1.562
+Réalisation  97 | theta err =   3.128 deg | rho err = 0.0107 | sum EIG = 1.488 | g_L = 1.472
+Réalisation  98 | theta err =   3.637 deg | rho err = 0.0151 | sum EIG = 1.470 | g_L = 1.444
+Réalisation  99 | theta err =  86.952 deg | rho err = 0.0035 | sum EIG = 1.153 | g_L = 0.669
+Réalisation 100 | theta err =  29.572 deg | rho err = 0.0111 | sum EIG = 1.410 | g_L = 1.345
+Réalisation 101 | theta err =  69.315 deg | rho err = 0.0294 | sum EIG = 1.468 | g_L = 0.859
+Réalisation 102 | theta err =  11.924 deg | rho err = 0.0106 | sum EIG = 1.281 | g_L = -0.480
+Réalisation 103 | theta err =  20.852 deg | rho err = 0.0093 | sum EIG = 1.338 | g_L = -2.602
+Réalisation 104 | theta err =  52.100 deg | rho err = 0.0146 | sum EIG = 1.211 | g_L = -0.240
+Réalisation 105 | theta err =  20.201 deg | rho err = 0.0309 | sum EIG = 1.120 | g_L = 1.827
+Réalisation 106 | theta err =  25.136 deg | rho err = 0.0163 | sum EIG = 1.122 | g_L = 1.865
+Réalisation 107 | theta err =  61.575 deg | rho err = 0.0076 | sum EIG = 1.436 | g_L = 0.208
+Réalisation 108 | theta err = 108.481 deg | rho err = 0.0007 | sum EIG = 1.462 | g_L = 0.884
+Réalisation 109 | theta err =   4.653 deg | rho err = 0.0135 | sum EIG = 1.353 | g_L = 1.162
+Réalisation 110 | theta err =  84.221 deg | rho err = 0.0070 | sum EIG = 1.742 | g_L = 0.582
+Réalisation 111 | theta err =   2.264 deg | rho err = 0.0046 | sum EIG = 1.170 | g_L = 1.255
+Réalisation 112 | theta err =  58.385 deg | rho err = 0.0088 | sum EIG = 1.658 | g_L = 1.321
+Réalisation 113 | theta err =   1.707 deg | rho err = 0.0029 | sum EIG = 1.254 | g_L = 2.814
+Réalisation 114 | theta err =  23.737 deg | rho err = 0.0044 | sum EIG = 1.772 | g_L = -12.814
+Réalisation 115 | theta err =   1.785 deg | rho err = 0.0131 | sum EIG = 1.209 | g_L = 2.754
+Réalisation 116 | theta err =  83.716 deg | rho err = 0.0488 | sum EIG = 1.068 | g_L = 0.235
+Réalisation 117 | theta err =   0.330 deg | rho err = 0.0041 | sum EIG = 0.547 | g_L = 2.927
+Réalisation 118 | theta err =  31.883 deg | rho err = 0.0207 | sum EIG = 1.688 | g_L = 0.224
+Réalisation 119 | theta err =   1.754 deg | rho err = 0.0036 | sum EIG = 1.718 | g_L = 2.052
+Réalisation 120 | theta err =   4.871 deg | rho err = 0.0081 | sum EIG = 1.067 | g_L = 1.107
+Réalisation 121 | theta err =   1.400 deg | rho err = 0.0030 | sum EIG = 1.156 | g_L = 2.616
+Réalisation 122 | theta err =  36.160 deg | rho err = 0.0056 | sum EIG = 1.052 | g_L = 0.868
+Réalisation 123 | theta err =  10.543 deg | rho err = 0.0055 | sum EIG = 1.242 | g_L = 1.417
+Réalisation 124 | theta err =  17.975 deg | rho err = 0.0077 | sum EIG = 1.633 | g_L = -0.524
+Réalisation 125 | theta err =  64.326 deg | rho err = 0.0247 | sum EIG = 1.443 | g_L = -3.405
+Réalisation 126 | theta err =   3.812 deg | rho err = 0.0043 | sum EIG = 1.152 | g_L = 1.568
+Réalisation 127 | theta err =   2.380 deg | rho err = 0.0001 | sum EIG = 1.489 | g_L = 2.571
+Réalisation 128 | theta err =   3.978 deg | rho err = 0.0169 | sum EIG = 1.153 | g_L = 1.598
+Réalisation 129 | theta err =   0.061 deg | rho err = 0.0055 | sum EIG = 1.801 | g_L = 3.176
+Réalisation 130 | theta err =  37.573 deg | rho err = 0.0088 | sum EIG = 1.108 | g_L = 2.316
+Réalisation 131 | theta err =  20.365 deg | rho err = 0.0195 | sum EIG = 1.330 | g_L = 1.432
+Réalisation 132 | theta err =  31.335 deg | rho err = 0.0139 | sum EIG = 1.707 | g_L = 0.337
+Réalisation 133 | theta err =  68.364 deg | rho err = 0.0024 | sum EIG = 0.903 | g_L = 1.803
+Réalisation 134 | theta err =   4.875 deg | rho err = 0.0228 | sum EIG = 1.481 | g_L = 0.439
+Réalisation 135 | theta err =   3.858 deg | rho err = 0.0049 | sum EIG = 1.321 | g_L = 1.742
+Réalisation 136 | theta err =   6.184 deg | rho err = 0.0100 | sum EIG = 1.249 | g_L = 1.071
+Réalisation 137 | theta err =  73.252 deg | rho err = 0.0121 | sum EIG = 1.118 | g_L = 2.098
+Réalisation 138 | theta err =  54.804 deg | rho err = 0.0255 | sum EIG = 1.378 | g_L = -0.106
+Réalisation 139 | theta err =   0.367 deg | rho err = 0.0010 | sum EIG = 0.910 | g_L = 2.392
+Réalisation 140 | theta err =  39.541 deg | rho err = 0.0374 | sum EIG = 1.214 | g_L = 1.307
+Réalisation 141 | theta err =  63.298 deg | rho err = 0.0243 | sum EIG = 1.192 | g_L = 0.461
+Réalisation 142 | theta err =   4.093 deg | rho err = 0.0055 | sum EIG = 2.612 | g_L = 0.862
+Réalisation 143 | theta err =   1.197 deg | rho err = 0.0139 | sum EIG = 1.413 | g_L = 1.901
+Réalisation 144 | theta err =   3.071 deg | rho err = 0.0076 | sum EIG = 1.454 | g_L = 1.238
+Réalisation 145 | theta err =  82.203 deg | rho err = 0.0091 | sum EIG = 1.226 | g_L = 0.397
+Réalisation 146 | theta err =   6.008 deg | rho err = 0.0014 | sum EIG = 0.453 | g_L = 1.798
+Réalisation 147 | theta err =  58.712 deg | rho err = 0.0031 | sum EIG = 1.570 | g_L = -0.613
+Réalisation 148 | theta err =  48.470 deg | rho err = 0.0092 | sum EIG = 1.943 | g_L = -1.164
+Réalisation 149 | theta err =  51.692 deg | rho err = 0.0014 | sum EIG = 1.132 | g_L = -0.031
+Réalisation 150 | theta err =  68.168 deg | rho err = 0.0060 | sum EIG = 0.968 | g_L = 1.958
+Réalisation 151 | theta err =   0.071 deg | rho err = 0.0003 | sum EIG = 1.246 | g_L = 1.955
+Réalisation 152 | theta err =  67.178 deg | rho err = 0.0022 | sum EIG = 1.497 | g_L = 1.378
+Réalisation 153 | theta err =  72.287 deg | rho err = 0.0031 | sum EIG = 1.237 | g_L = 0.584
+Réalisation 154 | theta err =   3.926 deg | rho err = 0.0181 | sum EIG = 1.591 | g_L = 2.053
+Réalisation 155 | theta err =  14.631 deg | rho err = 0.0214 | sum EIG = 1.775 | g_L = 1.170
+Réalisation 156 | theta err =   4.241 deg | rho err = 0.0087 | sum EIG = 1.074 | g_L = 0.905
+Réalisation 157 | theta err =   1.678 deg | rho err = 0.0301 | sum EIG = 1.449 | g_L = 1.409
+Réalisation 158 | theta err =   0.013 deg | rho err = 0.0071 | sum EIG = 1.441 | g_L = 2.755
+Réalisation 159 | theta err =  12.376 deg | rho err = 0.0162 | sum EIG = 1.903 | g_L = -0.148
+Réalisation 160 | theta err =  26.058 deg | rho err = 0.0030 | sum EIG = 1.018 | g_L = 0.908
+Réalisation 161 | theta err =  24.895 deg | rho err = 0.0056 | sum EIG = 1.186 | g_L = 1.814
+Réalisation 162 | theta err =  37.268 deg | rho err = 0.0073 | sum EIG = 1.458 | g_L = 0.458
+Réalisation 163 | theta err =   9.985 deg | rho err = 0.0206 | sum EIG = 1.090 | g_L = 1.148
+Réalisation 164 | theta err =   2.449 deg | rho err = 0.0201 | sum EIG = 0.852 | g_L = 2.396
+Réalisation 165 | theta err =   6.310 deg | rho err = 0.0255 | sum EIG = 1.368 | g_L = 1.011
+Réalisation 166 | theta err =  16.955 deg | rho err = 0.0124 | sum EIG = 1.801 | g_L = -0.751
+Réalisation 167 | theta err =  39.177 deg | rho err = 0.0232 | sum EIG = 1.523 | g_L = 0.595
+Réalisation 168 | theta err =  20.400 deg | rho err = 0.0236 | sum EIG = 0.921 | g_L = 1.184
+Réalisation 169 | theta err =  46.036 deg | rho err = 0.0106 | sum EIG = 1.330 | g_L = -0.245
+Réalisation 170 | theta err =   3.174 deg | rho err = 0.0128 | sum EIG = 1.337 | g_L = 0.958
+Réalisation 171 | theta err =  51.837 deg | rho err = 0.0169 | sum EIG = 1.144 | g_L = 0.059
+Réalisation 172 | theta err =  95.598 deg | rho err = 0.0519 | sum EIG = 1.075 | g_L = 0.313
+Réalisation 173 | theta err =   2.550 deg | rho err = 0.0144 | sum EIG = 1.543 | g_L = 0.528
+Réalisation 174 | theta err =  18.034 deg | rho err = 0.0030 | sum EIG = 1.369 | g_L = 0.386
+Réalisation 175 | theta err =   2.426 deg | rho err = 0.0043 | sum EIG = 1.768 | g_L = 2.265
+Réalisation 176 | theta err =   3.467 deg | rho err = 0.0060 | sum EIG = 1.132 | g_L = 1.916
+Réalisation 177 | theta err =   2.586 deg | rho err = 0.0042 | sum EIG = 1.557 | g_L = 2.507
+Réalisation 178 | theta err =  15.032 deg | rho err = 0.0081 | sum EIG = 1.886 | g_L = -2.597
+Réalisation 179 | theta err =  77.220 deg | rho err = 0.0095 | sum EIG = 1.746 | g_L = -2.154
+Réalisation 180 | theta err =   1.907 deg | rho err = 0.0118 | sum EIG = 0.929 | g_L = 1.871
+Réalisation 181 | theta err =   6.647 deg | rho err = 0.0203 | sum EIG = 0.894 | g_L = 2.042
+Réalisation 182 | theta err =  28.651 deg | rho err = 0.0129 | sum EIG = 1.415 | g_L = 1.524
+Réalisation 183 | theta err =   0.028 deg | rho err = 0.0006 | sum EIG = 1.044 | g_L = 3.029
+Réalisation 184 | theta err =  18.200 deg | rho err = 0.0061 | sum EIG = 1.641 | g_L = 0.658
+Réalisation 185 | theta err =   4.171 deg | rho err = 0.0025 | sum EIG = 1.374 | g_L = 1.948
+Réalisation 186 | theta err =  22.414 deg | rho err = 0.0508 | sum EIG = 1.473 | g_L = 1.449
+Réalisation 187 | theta err =   0.242 deg | rho err = 0.0137 | sum EIG = 0.790 | g_L = 3.034
+Réalisation 188 | theta err =  15.054 deg | rho err = 0.0046 | sum EIG = 1.396 | g_L = -1.778
+Réalisation 189 | theta err =  29.036 deg | rho err = 0.0044 | sum EIG = 1.544 | g_L = 1.219
+Réalisation 190 | theta err =  10.533 deg | rho err = 0.0003 | sum EIG = 1.403 | g_L = -0.542
+Réalisation 191 | theta err =   2.225 deg | rho err = 0.0040 | sum EIG = 1.373 | g_L = 2.640
+Réalisation 192 | theta err =  37.743 deg | rho err = 0.0010 | sum EIG = 1.579 | g_L = 1.450
+Réalisation 193 | theta err =   1.741 deg | rho err = 0.0133 | sum EIG = 1.165 | g_L = 0.996
+Réalisation 194 | theta err = 106.479 deg | rho err = 0.0263 | sum EIG = 1.204 | g_L = 0.445
+Réalisation 195 | theta err =  40.245 deg | rho err = 0.0238 | sum EIG = 1.128 | g_L = 1.457
+Réalisation 196 | theta err =   4.429 deg | rho err = 0.0145 | sum EIG = 1.659 | g_L = 2.146
+Réalisation 197 | theta err =   1.699 deg | rho err = 0.0006 | sum EIG = 1.591 | g_L = 2.346
+Réalisation 198 | theta err =   0.763 deg | rho err = 0.0182 | sum EIG = 1.509 | g_L = 1.628
+Réalisation 199 | theta err =  30.692 deg | rho err = 0.0139 | sum EIG = 0.939 | g_L = 1.526
+Réalisation 200 | theta err =  34.611 deg | rho err = 0.0038 | sum EIG = 1.710 | g_L = 0.824
+
+============================================================
+EIG / NMC RANDOM SEARCH (120)
+============================================================
+Theta MAE       : 8.1119 deg
+Theta median    : 1.5124 deg
+Theta RMSE      : 19.4719 deg
+rho MAE         : 0.010759
+Mean g_L        : 2.1485 nats
+Decision time   : 4675.5447 ms / beam
+Sum NMC EIG     : 2.6941 nats
+Sum NMC EIG recomputed : 2.5520 nats
+Mean EIG per step :
+   1 : 0.1375 nats
+   2 : 0.7346 nats
+   3 : 0.6508 nats
+   4 : 0.6397 nats
+   5 : 0.5316 nats
+
+======================================================================
+
+Ici on est en mode mean, et N=50
+============================================================
+EIG / NMC RANDOM SEARCH (400)
+============================================================
+Theta MAE       : 8.7490 deg
+Theta median    : 1.7364 deg
+Theta RMSE      : 19.3141 deg
+rho MAE         : 0.010987
+Mean g_L        : 1.8189 nats
+Decision time   : 168.5979 ms / beam
+Sum EIG diagnostic (N=50) : 4.1332 nats
+Sum EIG recomputed (N=5000) : 2.3876 nats
+Mean EIG per step :
+   1 : 1.0380 nats
+   2 : 0.7858 nats
+   3 : 0.8148 nats
+   4 : 0.7975 nats
+   5 : 0.6971 nats
+========================================================================
+
+============================================================
+DAD
+============================================================
+Theta MAE       : 7.1589 deg
+Theta median    : 1.3493 deg
+Theta RMSE      : 17.5295 deg
+rho MAE         : 0.010465
+Mean g_L        : 2.4642 nats
+Decision time   : 0.3030 ms / beam
+Sum EIG diagnostic (N=400) : 2.4986 nats
+Sum EIG recomputed (N=5000) : 2.4998 nats
+Mean EIG per step :
+   1 : 0.0949 nats
+   2 : 0.6345 nats
+   3 : 0.6571 nats
+   4 : 0.5567 nats
+   5 : 0.5512 nats
+
+============================================================
+RANDOM CONTINUOUS
+============================================================
+Theta MAE       : 27.5387 deg
+Theta median    : 15.0539 deg
+Theta RMSE      : 40.1225 deg
+rho MAE         : 0.012714
+Mean g_L        : 0.9852 nats
+Decision time   : 0.0480 ms / beam
+Sum EIG diagnostic (N=400) : 1.3767 nats
+Sum EIG recomputed (N=5000) : 1.3683 nats
+Mean EIG per step :
+   1 : 0.0504 nats
+   2 : 0.3705 nats
+   3 : 0.3422 nats
+   4 : 0.3048 nats
+   5 : 0.2757 nats

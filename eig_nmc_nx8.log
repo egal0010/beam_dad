@@ -1,0 +1,6 @@
+Méthodes à tester : 1 = EIG / NMC, 2 = DAD (réseau), 3 = Random
+Combinaisons possibles : 1, 2, 3, 1 2, 1 3, 2 3 ou 1 2 3.
+Chaque méthode : erreurs finales, sum_eig et g_L. Seul le cas 1 sélectionne par EIG.
+Ton choix : Device: cuda | Antennes: 8 | T: 5 | Ns: 127
+EIG / NMC : 1 = exhaustif, 2 = aléatoire (phases continues)
+Sélection des beams : Nombre de beams aléatoires (1 à 16383) : 

@@ -14,6 +14,12 @@ from modules.dad.contrastive import (
     make_observation_fn,
 )
 
+import os
+
+os.makedirs(
+    "checkpoints",
+    exist_ok=True,
+)
 
 def sample_theta_prior(
     n,
@@ -137,11 +143,12 @@ def train_dad(
     optimizer = torch.optim.Adam(
         policy.parameters(),
         lr=learning_rate,
+        betas=(0.8, 0.998),
     )
     
     scheduler = torch.optim.lr_scheduler.ExponentialLR(
     optimizer,
-    gamma=0.8,
+    gamma=0.98,
     )
 
 
@@ -154,6 +161,7 @@ def train_dad(
     }
 
     ema_bound = None
+    best_ema = -float("inf")
 
     # ========================================================
     # Training
@@ -295,8 +303,35 @@ def train_dad(
 
         optimizer.step() #here we update the parameters using the gradients computed in the backward pass and the learning rate specified in the optimizer
 
-        if step % 100 == 0:
+        if step % 1000 == 0:
             scheduler.step() #we update the learning rate according to the scheduler, which in this case is an exponential decay
+            torch.save(
+                {
+                    "model_state_dict":
+                        policy.state_dict(),
+
+                    "optimizer_state_dict":
+                        optimizer.state_dict(),
+
+                    "scheduler_state_dict":
+                        scheduler.state_dict(),
+
+                    "Nx": params.Nx,
+                    "Ny": params.Ny,
+                    "Ns": s.numel(),
+
+                    "hidden_dim": policy.hidden_dim,
+                    "encoding_dim": policy.encoding_dim,
+
+                    "encoder_type": "mean_var",
+
+                    "step": step,
+                    "history": history,
+                    "ema_bound": ema_bound,
+                },
+                f"checkpoints/dad_T10_step_{step}.pt",
+            )
+                        
         # ====================================================
         # Logging
         # ====================================================
@@ -324,6 +359,36 @@ def train_dad(
                 0.95 * ema_bound
                 + 0.05 * bound_value
             )
+
+        if ema_bound > best_ema:
+            best_ema = ema_bound
+
+            torch.save(
+                {
+                    "model_state_dict":
+                        policy.state_dict(),
+
+                    "optimizer_state_dict":
+                        optimizer.state_dict(),
+
+                    "scheduler_state_dict":
+                        scheduler.state_dict(),
+
+                    "Nx": params.Nx,
+                    "Ny": params.Ny,
+                    "Ns": s.numel(),
+
+                    "hidden_dim": policy.hidden_dim,
+                    "encoding_dim": policy.encoding_dim,
+
+                    "encoder_type": "mean_var",
+
+                    "step": step,
+                    "history": history,
+                    "ema_bound": ema_bound,
+                },
+                "checkpoints/dad_T10_best.pt",
+            ) 
 
         if (
             step == 1

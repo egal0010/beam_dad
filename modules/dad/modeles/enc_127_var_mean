@@ -1,0 +1,116 @@
+import torch
+import torch.nn as nn
+
+
+class Encoder(nn.Module):
+    def __init__(
+        self,
+        design_dim=4,
+        observation_dim=127,
+        hidden_dim=256,
+        encoding_dim=64,
+        sample_hidden_dim=32,
+        observation_encoding_dim=32,
+    ):
+        super().__init__()
+
+        # --------------------------------------------------
+        # phi(r_l)
+        #
+        # Same network applied independently to each
+        # amplitude sample.
+        # --------------------------------------------------
+        self.sample_encoder = nn.Sequential(
+            nn.Linear(1, sample_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(
+                sample_hidden_dim,
+                observation_encoding_dim,
+            ),
+            nn.ReLU(),
+        )
+
+        # Beam:
+        # cos/sin of the K-1 relative phases
+        design_feature_dim = 2 * (design_dim - 1)
+
+        # Pooled sample features plus the scalar mean and variance.
+        observation_feature_dim = observation_encoding_dim + 2
+        input_dim = design_feature_dim + observation_feature_dim
+
+        # --------------------------------------------------
+        # rho(beam_features, pooled observation features)
+        # --------------------------------------------------
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, encoding_dim),
+        )
+
+    def forward(self, eta, r):
+        """
+        eta : [..., K]
+        r   : [..., Ns]
+
+        output : [..., encoding_dim]
+        """
+
+        # ==================================================
+        # Beam representation
+        # ==================================================
+
+        eta_relative = eta[..., 1:]
+
+        eta_features = torch.cat(
+            [
+                torch.cos(eta_relative),
+                torch.sin(eta_relative),
+            ],
+            dim=-1,
+        )
+
+        # ==================================================
+        # Permutation-invariant observation representation
+        # ==================================================
+
+        sample_features = self.sample_encoder(
+            r.unsqueeze(-1)
+        )
+
+        deep_features = sample_features.mean(
+            dim=-2
+        )
+
+        mean_r = r.mean(
+            dim=-1,
+            keepdim=True,
+        )
+
+        var_r = r.var(
+            dim=-1,
+            keepdim=True,
+            correction=0,
+        )
+
+        r_features = torch.cat(
+            [
+                deep_features,
+                mean_r,
+                var_r,
+            ],
+            dim=-1,
+        )
+
+        # ==================================================
+        # Joint encoding of beam + measurement
+        # ==================================================
+
+        x = torch.cat(
+            [
+                eta_features,
+                r_features,
+            ],
+            dim=-1,
+        )
+
+        return self.net(x)

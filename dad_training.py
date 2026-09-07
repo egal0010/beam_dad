@@ -39,7 +39,7 @@ print("Device:", device)
 # ============================================================
 
 params = Params(
-    Nx=4,
+    Nx=8,
     Ny=1,
 )
 
@@ -80,23 +80,23 @@ history = train_dad(
     params=params,
     s=s,
 
-    num_steps=1000,
+    num_steps=40000,
 
-    batch_size=128,
+    batch_size=200,
 
-    L=128,
+    L=200,
 
-    n_experiments=10,
+    n_experiments=5,
 
     snr_db=0.0, #on n'entraînerait pas avec différents snr? 
 
     rho_grid_size=50,
 
-    learning_rate=1e-4,
+    learning_rate=5e-5,
 
     grad_clip=1.0,
 
-    print_every=25,
+    print_every=20,
 )
 
 
@@ -121,7 +121,7 @@ torch.save(
         "Ns":
             Ns,
     },
-    "dad_nx4_smoke.pt",
+    "dad_nx8_smoke_127.pt",
 )
 
 print("Model saved.")

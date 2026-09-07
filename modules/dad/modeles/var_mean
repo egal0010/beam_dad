@@ -1,0 +1,57 @@
+import torch
+import torch.nn as nn
+
+
+class Encoder(nn.Module):
+
+    def __init__(
+        self,
+        design_dim=4,
+        observation_dim=127,
+        hidden_dim=256,
+        encoding_dim=64,
+    ):
+        super().__init__()
+
+        input_dim = 2 * (design_dim - 1) + 2  # cos/sin des phases + amplitudes
+
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, encoding_dim),
+        )
+
+    def forward(self, eta, r):
+
+        # La première phase est toujours 0 :
+        # on ne garde que les K-1 phases relatives
+        eta_relative = eta[..., 1:]
+
+        eta_features = torch.cat(
+            [
+                torch.cos(eta_relative),
+                torch.sin(eta_relative),
+            ],
+            dim=-1,
+        )
+
+        mean_r = torch.mean(r, dim=-1, keepdim=True)
+        mean_r2= torch.square(torch.mean(r, dim=-1, keepdim=True)) #will try this later on
+        var_r = torch.var(r, dim=-1, keepdim=True, correction=False)
+
+        r_features = torch.cat(
+            [
+                mean_r,
+                var_r,
+            ],
+            dim=-1,
+        )
+        x = torch.cat(
+            [
+                eta_features,
+                r_features,
+            ],
+            dim=-1,
+        )
+
+        return self.net(x)

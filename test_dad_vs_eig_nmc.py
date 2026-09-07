@@ -1,1809 +1,360 @@
+"""Compare les méthodes choisies sur les mêmes réalisations physiques."""
+
 import math
+import re
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import torch
 
 from modules.beam_eig.params import Params
-
-from modules.beam_eig.pilot import (
-    generate_pilot_sequence,
-)
-
-from modules.beam_eig.array_model import (
-    steering_vector,
-    beam_from_phases,
-)
-
-from modules.beam_eig.codebook import (
-    generate_quantized_codebook,
-)
-
-from modules.beam_eig.baseline_eig import (
-    choose_beam,
-    estimate_eig_for_eta_marginal,
-    estimate_eig_for_eta_mean,
-)
-
-from modules.beam_eig.posterior import (
-    update_posterior,
-    marginal_theta,
-    marginal_rho,
-    compute_rho_mean,
-)
-
-from modules.beam_eig.simulator import (
-    sigma_from_snr,
-)
-
-from modules.dad.policy import (
-    DADPolicy,
-)
-
-from modules.dad.contrastive import (
-    contrastive_bound,
-    make_log_likelihood_fn,
-)
+from modules.beam_eig.pilot import generate_pilot_sequence
+from modules.beam_eig.array_model import steering_vector, beam_from_phases
+from modules.beam_eig.codebook import generate_quantized_codebook
+from modules.beam_eig.baseline_eig import choose_beam, estimate_eig_for_eta_marginal
+from modules.beam_eig.posterior import update_posterior, marginal_theta, marginal_rho
+from modules.beam_eig.simulator import sigma_from_snr
+from modules.dad.policy import DADPolicy
+from modules.dad.contrastive import contrastive_bound, make_log_likelihood_fn
 
 
-# ============================================================
 # Configuration
-# ============================================================
-
 SNR_DB = 0.0
-
 N_REAL = 200
-
-# Nombre de contrastifs uniquement pour l'EVALUATION finale
-# de g_L. Ça n'a rien à voir avec le L utilisé pendant
-# l'entraînement.
-L_EVAL = 3000
-
+L_EVAL = 3000  # Contrastifs pour l'évaluation finale, indépendants de l'entraînement.
+N_RECOMPUTE = 5000  # Recalcul EIG du beam choisi pour toutes les méthodes.
 SEED = 42
-
-CHECKPOINT_PATH = Path(
-    "dad_nx4_smoke.pt"
-)
-
-
-# ============================================================
-# Device
-# ============================================================
-
-device = torch.device(
-    "cuda"
-    if torch.cuda.is_available()
-    else "cpu"
-)
-
-print("Device:", device)
+CHECKPOINT_PATH = Path("dad_nx8_smoke_127.pt")
+OUTPUT_PATH = Path("comparison_nmc_vs_dad.pt")
+NAMES = {"baseline": "EIG / NMC", "dad": "DAD", "random": "RANDOM CONTINUOUS"}
 
 
-# ============================================================
-# Reproducibility
-# ============================================================
+def choose_methods():
+    print("Méthodes à tester : 1 = EIG / NMC, 2 = DAD (réseau), 3 = Random")
+    print("Combinaisons possibles : 1, 2, 3, 1 2, 1 3, 2 3 ou 1 2 3.")
+    print("Chaque méthode : erreurs finales, sum_eig et g_L. Seul le cas 1 sélectionne par EIG.")
+    while True:
+        choices = set(re.split(r"[\s,;+]+", input("Ton choix : ").strip()))
+        if choices and choices <= {"1", "2", "3"}:
+            return choices
+        print("Entre au moins un numéro parmi 1, 2 et 3 (exemple : 2 3).")
 
-torch.manual_seed(SEED)
 
-if torch.cuda.is_available():
-    torch.cuda.manual_seed_all(SEED)
-
-
-# ============================================================
-# Helpers
-# ============================================================
-
-def sync_cuda():
-    """
-    Nécessaire pour mesurer correctement les temps GPU.
-    """
-
+def sync_cuda(device):
     if device.type == "cuda":
-        torch.cuda.synchronize()
+        torch.cuda.synchronize(device)
 
 
-def make_uniform_posterior(
-    theta_grid,
-    rho_grid,
-):
-    posterior = torch.ones(
-        theta_grid.numel(),
-        rho_grid.numel(),
-        dtype=torch.float32,
-        device=device,
+def make_test_set():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    torch.manual_seed(SEED)
+    if device.type == "cuda":
+        torch.cuda.manual_seed_all(SEED)
+
+    params = Params()
+    s = generate_pilot_sequence(device=device, sequence_type="PSS")
+    theta_grid = torch.deg2rad(torch.linspace(30.0, 150.0, 121, device=device))
+    rho_grid = torch.linspace(0.05, 1.0, 50, device=device)
+    theta_min = math.radians(30.0)
+    theta_range = math.radians(120.0)
+
+    # Générés une seule fois, partagés par toutes les méthodes sélectionnées.
+    theta_true = theta_min + theta_range * torch.rand(N_REAL, device=device)
+    rho_true = 0.05 + 0.95 * torch.rand(N_REAL, device=device)
+    noise_real = torch.randn(N_REAL, params.T, s.numel(), device=device)
+    noise_imag = torch.randn_like(noise_real)
+    theta_contrast = theta_min + theta_range * torch.rand(N_REAL, L_EVAL, device=device)
+
+    print(f"Device: {device} | Antennes: {params.K} | T: {params.T} | Ns: {s.numel()}")
+    return SimpleNamespace(
+        device=device, params=params, s=s, theta_grid=theta_grid, rho_grid=rho_grid,
+        a_grid=steering_vector(theta_grid, params), theta_true=theta_true,
+        rho_true=rho_true, noise_real=noise_real, noise_imag=noise_imag,
+        theta_contrast=theta_contrast,
+        log_likelihood_fn=make_log_likelihood_fn(
+            rho_grid=rho_grid, s=s, snr_db=SNR_DB, params=params,
+        ),
+        log_p_rho_prior=torch.full(
+            (rho_grid.numel(),), -math.log(rho_grid.numel()), device=device,
+        ),
     )
 
-    return posterior / posterior.sum()
 
-
-def generate_measurement_fixed_noise(
-    theta,
-    rho,
-    eta,
-    s,
-    sigma,
-    params,
-    noise_real,
-    noise_imag,
-):
-    """
-    Même réalisation de bruit pour baseline et DAD.
-
-    Le beam peut être différent, donc le signal reçu
-    est différent, mais le bruit sous-jacent est identique.
-    """
-
-    a = steering_vector(
-        theta,
-        params,
+def generate_measurement_fixed_noise(ctx, realization, step, eta, sigma):
+    a = steering_vector(ctx.theta_true[realization], ctx.params)
+    b = beam_from_phases(eta)
+    alpha = ctx.rho_true[realization] * (b.conj().T @ a).squeeze()
+    noise = sigma / math.sqrt(2.0) * (
+        ctx.noise_real[realization, step] + 1j * ctx.noise_imag[realization, step]
     )
-
-    b = beam_from_phases(
-        eta,
-    )
-
-    alpha = rho * (
-        b.conj().T @ a
-    ).squeeze()
-
-    mu = alpha * s
-
-    w = (
-        sigma
-        / math.sqrt(2.0)
-        * (
-            noise_real
-            + 1j * noise_imag
-        )
-    )
-
-    y = mu + w
-
-    return torch.abs(y)
+    return torch.abs(alpha * ctx.s + noise)
 
 
-def get_final_estimates(
-    posterior,
-    theta_grid,
-    rho_grid,
-):
-    p_theta = marginal_theta(
-        posterior
-    )
-
-    p_rho = marginal_rho(
-        posterior
-    )
-
-    theta_hat = theta_grid[
-        torch.argmax(p_theta)
-    ]
-
-    rho_hat = rho_grid[
-        torch.argmax(p_rho)
-    ]
-
-    return theta_hat, rho_hat
-
-
-def evaluate_g_L(
-    theta_true,
-    theta_contrast,
-    eta_history,
-    r_history,
-    rho_grid,
-    s,
-    snr_db,
-    params,
-):
-    """
-    Évalue la trajectoire entière avec exactement le
-    même score contrastif pour baseline et DAD.
-
-    theta_true      : scalar
-    theta_contrast  : [L_EVAL]
-    eta_history     : [1, T, K]
-    r_history       : [1, T, Ns]
-    """
-
-    theta_candidates = torch.cat(
-        [
-            theta_true.reshape(1, 1),
-            theta_contrast.reshape(1, -1),
-        ],
-        dim=1,
-    )
-
-    R = rho_grid.numel()
-
-    log_p_rho_prior = torch.full(
-        (R,),
-        -math.log(R),
-        device=device,
-        dtype=torch.float32,
-    )
-
-    log_likelihood_fn = (
-        make_log_likelihood_fn(
-            rho_grid=rho_grid,
-            s=s,
-            snr_db=snr_db,
-            params=params,
-        )
-    )
-
+def evaluate_g_L(ctx, realization, eta_history, r_history):
+    theta_candidates = torch.cat([
+        ctx.theta_true[realization].reshape(1, 1),
+        ctx.theta_contrast[realization].reshape(1, -1),
+    ], dim=1)
     bound, _ = contrastive_bound(
-        theta_candidates=theta_candidates,
-        eta_history=eta_history,
-        r_history=r_history,
-        log_likelihood_fn=log_likelihood_fn,
-        log_p_rho_prior=log_p_rho_prior,
+        theta_candidates=theta_candidates, eta_history=eta_history,
+        r_history=r_history, log_likelihood_fn=ctx.log_likelihood_fn,
+        log_p_rho_prior=ctx.log_p_rho_prior,
     )
-
     return bound.item()
 
 
-def print_summary(
-    name,
-    theta_errors,
-    rho_errors,
-    eig_sums,
-    eig_sums_recomputed,
-    g_L_values,
-    decision_times,
-):
-    theta_errors = torch.tensor(
-        theta_errors
-    )
-
-    rho_errors = torch.tensor(
-        rho_errors
-    )
-
-    eig_sums = torch.tensor(
-        eig_sums
-    )
-
-    eig_sums_recomputed = torch.tensor(
-        eig_sums_recomputed
-    )
-
-    g_L_values = torch.tensor(
-        g_L_values
-    )
-
-    decision_times = torch.tensor(
-        decision_times
-    )
-
-    print()
-    print(
-        "=" * 60
-    )
-    print(name)
-    print(
-        "=" * 60
-    )
-
-    print(
-        f"Theta MAE       : "
-        f"{theta_errors.mean().item():.4f} deg"
-    )
-
-    print(
-        f"Theta median    : "
-        f"{theta_errors.median().item():.4f} deg"
-    )
-
-    print(
-        f"Theta RMSE      : "
-        f"{torch.sqrt(torch.mean(theta_errors**2)).item():.4f} deg"
-    )
-
-    print(
-        f"rho MAE         : "
-        f"{rho_errors.mean().item():.6f}"
-    )
-
-    print(
-        f"Sum NMC EIG     : "
-        f"{eig_sums.mean().item():.4f} nats"
-    )
-
-    print(
-        f"Sum NMC EIG recomputed : "
-        f"{eig_sums_recomputed.mean().item():.4f} nats"
-    )
-
-    print(
-        f"Mean g_L        : "
-        f"{g_L_values.mean().item():.4f} nats"
-    )
-
-    print(
-        f"Decision time   : "
-        f"{1e3 * decision_times.mean().item():.4f} ms / beam"
-    )
-
-
-# ============================================================
-# Physical setup
-# ============================================================
-
-params = Params(
-    Nx=4,
-    Ny=1,
-)
-
-print(
-    "N antennas :",
-    params.K,
-)
-
-print(
-    "T          :",
-    params.T,
-)
-
-print(
-    "NMC N      :",
-    params.N,
-)
-
-
-# ============================================================
-# Pilot
-# ============================================================
-
-s = generate_pilot_sequence(
-    device=device,
-    sequence_type="PSS",
-).to(
-    dtype=torch.float32,
-)
-
-Ns = s.numel()
-
-print(
-    "Ns         :",
-    Ns,
-)
-
-
-# ============================================================
-# theta / rho grids
-#
-# Same grids as baseline
-# ============================================================
-
-theta_grid = torch.deg2rad(
-    torch.linspace(
-        30.0,
-        150.0,
-        121,
-        dtype=torch.float32,
-        device=device,
-    )
-)
-
-rho_grid = torch.linspace(
-    0.05,
-    1.0,
-    50,
-    dtype=torch.float32,
-    device=device,
-)
-
-L_theta = theta_grid.numel()
-L_rho = rho_grid.numel()
-
-
-# ============================================================
-# Steering matrix
-# ============================================================
-
-a_grid = steering_vector(
-    theta_grid,
-    params,
-)
-
-
-# ============================================================
-# Baseline codebook
-#
-# B = 2 -> 4^(K-1) = 64 beams
-# ============================================================
-
-eta_grid = generate_quantized_codebook(
-    params.K,
-    params.B,
-    device,
-)
-
-print(
-    "Baseline beams:",
-    eta_grid.shape[1],
-)
-
-
-# ============================================================
-# FIXED TEST SET
-#
-# Important:
-# baseline et DAD voient exactement les mêmes
-# theta_true et rho_true.
-# ============================================================
-
-theta_min = math.radians(30.0)
-theta_max = math.radians(150.0)
-
-theta_true_all = (
-    theta_min
-    + (
-        theta_max
-        - theta_min
-    )
-    * torch.rand(
-        N_REAL,
-        device=device,
-    )
-)
-
-rho_true_all = (
-    0.05
-    + 0.95
-    * torch.rand(
-        N_REAL,
-        device=device,
-    )
-)
-
-
-# ============================================================
-# FIXED ENVIRONMENT NOISE
-#
-# Même bruit physique pour baseline et DAD.
-#
-# Attention :
-# le bruit Monte-Carlo utilisé à l'intérieur de
-# estimate_eig_for_eta reste indépendant.
-# ============================================================
-
-noise_real_all = torch.randn(
-    N_REAL,
-    params.T,
-    Ns,
-    device=device,
-)
-
-noise_imag_all = torch.randn(
-    N_REAL,
-    params.T,
-    Ns,
-    device=device,
-)
-
-
-# ============================================================
-# Fixed contrastive theta for g_L evaluation
-#
-# SAME theta contrastifs for baseline and DAD.
-# ============================================================
-
-theta_contrast_all = (
-    theta_min
-    + (
-        theta_max
-        - theta_min
-    )
-    * torch.rand(
-        N_REAL,
-        L_EVAL,
-        device=device,
-    )
-)
-
-
-# ============================================================
-# Storage
-# ============================================================
-
-baseline_theta_errors = []
-baseline_rho_errors = []
-
-baseline_eig_sums = []
-baseline_eig_sums_recomputed = []
-baseline_eig_per_step = []
-
-baseline_g_L = []
-
-baseline_decision_times = []
-
-
-dad_theta_errors = []
-dad_rho_errors = []
-
-dad_eig_sums = []
-dad_eig_sums_recomputed = []
-dad_eig_per_step = []
-
-dad_g_L = []
-
-dad_decision_times = []
-
-
-# ============================================================
-#
-# PART 1
-#
-# BASELINE EIG / NMC
-#
-# ============================================================
-
-print()
-print(
-    "=" * 60
-)
-print(
-    "BASELINE EIG / NMC"
-)
-print(
-    "=" * 60
-)
-
-
-with torch.no_grad():
-
-    for r in range(
-        N_REAL
-    ):
-
-        theta_true = (
-            theta_true_all[r]
+@torch.inference_mode()
+def evaluate_method(ctx, name, select_beam, *, nmc=False):
+    """Boucle commune : décision, observation, posterior et scores finaux.
+
+    select_beam renvoie (phases [K], EIG optionnel). Le posterior ne sert
+    à choisir le beam que pour NMC ; DAD utilise uniquement l'historique.
+    """
+    print(f"\n{'=' * 60}\n{NAMES[name]}\n{'=' * 60}")
+    # Rend chaque méthode reproductible indépendamment de la combinaison choisie.
+    torch.manual_seed(SEED + {"baseline": 1, "dad": 2, "random": 3}[name])
+    results = {key: [] for key in ("theta_errors", "rho_errors", "g_L", "decision_times", "eig_sums", "eig_per_step")}
+    results["eig_sums_recomputed"] = []
+
+    for r in range(ctx.theta_true.numel()):
+        posterior = torch.ones(
+            ctx.theta_grid.numel(), ctx.rho_grid.numel(), device=ctx.device,
         )
-
-        rho_true = (
-            rho_true_all[r]
-        )
-
-        sigma = sigma_from_snr(
-            s=s,
-            snr_db=SNR_DB,
-            rho_true=rho_true,
-        )
-
-
-        # ====================================================
-        # Initial posterior
-        # ====================================================
-
-        posterior = (
-            make_uniform_posterior(
-                theta_grid,
-                rho_grid,
-            )
-        )
-
-
-        # ====================================================
-        # Histories
-        #
-        # We store them in DAD convention:
-        #
-        # eta_history : [1,T,K]
-        # r_history   : [1,T,Ns]
-        # ====================================================
-
-        eta_history = torch.empty(
-            1,
-            0,
-            params.K,
-            device=device,
-        )
-
-        r_history = torch.empty(
-            1,
-            0,
-            Ns,
-            device=device,
-        )
-
-
-        eig_sum = 0.0
-        eig_sum_recomputed = 0.0
+        posterior /= posterior.sum()
+        eta_history = torch.empty(1, 0, ctx.params.K, device=ctx.device)
+        r_history = torch.empty(1, 0, ctx.s.numel(), device=ctx.device)
+        sigma = sigma_from_snr(s=ctx.s, snr_db=SNR_DB, rho_true=ctx.rho_true[r])
         eig_steps = []
+        eig_sum_recomputed = 0.0
 
-
-        # ====================================================
-        # Adaptive baseline
-        # ====================================================
-
-        for t in range(
-            params.T
-        ):
-
-            # --------------------------------------------
-            # Current posterior p(theta)
-            # --------------------------------------------
-
-            p_theta = marginal_theta(
-                posterior
-            )
-
-
-
-            # ============================================
-            # Beam selection timing
-            # ============================================
-
-            sync_cuda()
-
+        for t in range(ctx.params.T):
+            # Le marginal du posterior est préparé hors du temps de décision.
+            p_theta = marginal_theta(posterior) if nmc else None
+            sync_cuda(ctx.device)
             tic = time.perf_counter()
+            eta_vec, eig_t = select_beam(posterior, p_theta, sigma, eta_history, r_history)
+            sync_cuda(ctx.device)
+            results["decision_times"].append(time.perf_counter() - tic)
 
-            eta_star, eig_values = (
-                choose_beam(
-                    eta_grid=eta_grid,
-                    a_grid=a_grid,
-                    s=s,
-                    snr_db=SNR_DB,
-                    sigma=sigma,
-                    p_theta=p_theta,
-                    posterior=posterior,
-                    rho_grid=rho_grid,
-                    mode="marginal",
-                    N=params.N,
+            # Diagnostic du beam déjà choisi, hors du temps de décision
+            # et avant d'incorporer la nouvelle observation au posterior.
+            if not nmc:
+                eig_t = estimate_eig_for_eta_marginal(
+                    eta=eta_vec[:, None], a_grid=ctx.a_grid, s=ctx.s,
+                    snr_db=SNR_DB, posterior=posterior, rho_grid=ctx.rho_grid,
+                    N=ctx.params.N,
                 )
+            eig_steps.append(eig_t.item())
+            eig_recomputed = estimate_eig_for_eta_marginal(
+                eta=eta_vec[:, None], a_grid=ctx.a_grid, s=ctx.s,
+                snr_db=SNR_DB, posterior=posterior, rho_grid=ctx.rho_grid,
+                N=N_RECOMPUTE,
             )
-
-            sync_cuda()
-
-            baseline_decision_times.append(
-                time.perf_counter()
-                - tic
-            )
-
-
-            # --------------------------------------------
-            # NMC EIG of selected beam
-            # --------------------------------------------
-
-            eig_t = eig_values.max()
-
-            eig_recomputed= estimate_eig_for_eta_marginal(
-                eta=eta_star.squeeze(-1)[:, None],
-                a_grid=a_grid,
-                s=s,
-                snr_db=SNR_DB,
-                posterior=posterior,
-                rho_grid=rho_grid,
-                N=5000,
-            )
-
             eig_sum_recomputed += eig_recomputed.item()
 
-            eig_sum += eig_t.item()
-
-            eig_steps.append(
-                eig_t.item()
-            )
-
-
-            # --------------------------------------------
-            # [K,1] -> [K]
-            # --------------------------------------------
-
-            eta_vec = (
-                eta_star.squeeze(-1)
-            )
-
-
-            # --------------------------------------------
-            # True physical observation
-            #
-            # IMPORTANT:
-            # fixed noise shared with DAD
-            # --------------------------------------------
-
-            amp_vec = (
-                generate_measurement_fixed_noise(
-                    theta=theta_true,
-                    rho=rho_true,
-                    eta=eta_vec,
-                    s=s,
-                    sigma=sigma,
-                    params=params,
-                    noise_real=(
-                        noise_real_all[
-                            r,
-                            t,
-                        ]
-                    ),
-                    noise_imag=(
-                        noise_imag_all[
-                            r,
-                            t,
-                        ]
-                    ),
-                )
-            )
-
-
-            # --------------------------------------------
-            # Posterior update
-            # --------------------------------------------
-
+            amp_vec = generate_measurement_fixed_noise(ctx, r, t, eta_vec, sigma)
             posterior = update_posterior(
-                eta=eta_vec,
-                a_grid=a_grid,
-                amp_vec=amp_vec,
-                posterior=posterior,
-                rho_grid=rho_grid,
-                s=s,
-                snr_db=SNR_DB,
+                eta=eta_vec, a_grid=ctx.a_grid, amp_vec=amp_vec,
+                posterior=posterior, rho_grid=ctx.rho_grid, s=ctx.s, snr_db=SNR_DB,
             )
+            eta_history = torch.cat([eta_history, eta_vec.reshape(1, 1, -1)], dim=1)
+            r_history = torch.cat([r_history, amp_vec.reshape(1, 1, -1)], dim=1)
 
-
-            # --------------------------------------------
-            # Save trajectory
-            # --------------------------------------------
-
-            eta_history = torch.cat(
-                [
-                    eta_history,
-                    eta_vec.reshape(
-                        1,
-                        1,
-                        params.K,
-                    ),
-                ],
-                dim=1,
-            )
-
-            r_history = torch.cat(
-                [
-                    r_history,
-                    amp_vec.reshape(
-                        1,
-                        1,
-                        Ns,
-                    ),
-                ],
-                dim=1,
-            )
-
-
-        # ====================================================
-        # Final theta / rho estimates
-        # ====================================================
-
-        theta_hat, rho_hat = (
-            get_final_estimates(
-                posterior,
-                theta_grid,
-                rho_grid,
-            )
-        )
-
-
-        theta_error = torch.abs(
-            torch.rad2deg(
-                theta_hat
-                - theta_true
-            )
-        )
-
-        rho_error = torch.abs(
-            rho_hat
-            - rho_true
-        )
-
-
-        # ====================================================
-        # Common trajectory-level g_L evaluation
-        # ====================================================
-
-        g_L_value = evaluate_g_L(
-            theta_true=theta_true,
-            theta_contrast=(
-                theta_contrast_all[r]
-            ),
-            eta_history=eta_history,
-            r_history=r_history,
-            rho_grid=rho_grid,
-            s=s,
-            snr_db=SNR_DB,
-            params=params,
-        )
-
-
-        # ====================================================
-        # Storage
-        # ====================================================
-
-        baseline_theta_errors.append(
-            theta_error.item()
-        )
-
-        baseline_rho_errors.append(
-            rho_error.item()
-        )
-
-        baseline_eig_sums.append(
-            eig_sum
-        )
-
-        baseline_eig_sums_recomputed.append(
-            eig_sum_recomputed
-        )
-
-        baseline_eig_per_step.append(
-            eig_steps
-        )
-
-        baseline_g_L.append(
-            g_L_value
-        )
-
-
+        theta_hat = ctx.theta_grid[torch.argmax(marginal_theta(posterior))]
+        rho_hat = ctx.rho_grid[torch.argmax(marginal_rho(posterior))]
+        theta_error = torch.abs(torch.rad2deg(theta_hat - ctx.theta_true[r])).item()
+        rho_error = torch.abs(rho_hat - ctx.rho_true[r]).item()
+        g_L = evaluate_g_L(ctx, r, eta_history, r_history)
+        results["theta_errors"].append(theta_error)
+        results["rho_errors"].append(rho_error)
+        results["g_L"].append(g_L)
+        results["eig_sums"].append(sum(eig_steps))
+        results["eig_per_step"].append(eig_steps)
+        results["eig_sums_recomputed"].append(eig_sum_recomputed)
+        eig_text = f"sum EIG = {sum(eig_steps):.3f} | "
         print(
-            f"Realisation {r + 1:3d} | "
-            f"theta err = "
-            f"{theta_error.item():7.3f} deg | "
-            f"rho err = "
-            f"{rho_error.item():.4f} | "
-            f"sum EIG = "
-            f"{eig_sum:.3f} | "
-            f"g_L = "
-            f"{g_L_value:.3f}"
+            f"Réalisation {r + 1:3d} | theta err = {theta_error:7.3f} deg | "
+            f"rho err = {rho_error:.4f} | {eig_text}g_L = {g_L:.3f}"
         )
 
-
-# ============================================================
-#
-# PART 2
-#
-# LOAD DAD POLICY
-#
-# ============================================================
-
-print()
-print(
-    "=" * 60
-)
-print(
-    "LOADING DAD POLICY"
-)
-print(
-    "=" * 60
-)
+    return {key: torch.tensor(values) for key, values in results.items()}
 
 
-checkpoint = torch.load(
-    CHECKPOINT_PATH,
-    map_location=device,
-)
+def choose_eig_candidates(params):
+    print(f"EIG / NMC : 1 = exhaustif, 2 = aléatoire (phases quantifiées sur {params.B} bits)")
+    while True:
+        choice = input("Sélection des beams : ").strip()
+        if choice == "1":
+            return None
+        if choice == "2" and params.R > 1:
+            break
+        print("Choisis 1 ou 2." if params.R > 1 else "Un seul beam possible : choisis 1.")
+    while True:
+        try:
+            count = int(input(f"Nombre de beams aléatoires (1 à {params.R - 1}) : "))
+            if 1 <= count < params.R:
+                return count
+        except ValueError:
+            pass
+        print(f"Entre un entier strictement positif et inférieur à {params.R}.")
 
 
-# ============================================================
-# Recover architecture
-#
-# For your current checkpoint:
-#
-# encoder:
-#   131 -> 256 -> 16
-#
-# emitter:
-#   16 -> 4
-#
-# We infer 256 and 16 from the state_dict.
-# ============================================================
-
-state_dict = (
-    checkpoint[
-        "model_state_dict"
-    ]
-)
-
-design_dim = (
-    checkpoint["Nx"]
-    * checkpoint["Ny"]
-)
-
-observation_dim = (
-    checkpoint["Ns"]
-)
-
-hidden_dim = (
-    state_dict[
-        "encoder.net.0.weight"
-    ].shape[0]
-)
-
-encoding_dim = (
-    state_dict[
-        "encoder.net.2.weight"
-    ].shape[0]
-)
-
-
-print(
-    "design_dim      :",
-    design_dim,
-)
-
-print(
-    "observation_dim :",
-    observation_dim,
-)
-
-print(
-    "hidden_dim      :",
-    hidden_dim,
-)
-
-print(
-    "encoding_dim    :",
-    encoding_dim,
-)
-
-
-# ============================================================
-# Safety checks
-# ============================================================
-
-if design_dim != params.K:
-
-    raise ValueError(
-        "Checkpoint antenna dimension "
-        "does not match comparison setup."
+def generate_random_beam_candidates(K, B, n_candidates, device, generator):
+    eta_grid = torch.zeros(K, n_candidates, device=device)
+    eta_grid[1:, :] = (2.0 * math.pi / (2**B)) * torch.randint(
+        2**B, (K - 1, n_candidates), device=device, generator=generator,
     )
-
-if observation_dim != Ns:
-
-    raise ValueError(
-        "Checkpoint observation dimension "
-        "does not match PSS length."
-    )
+    return eta_grid
 
 
-# ============================================================
-# Recreate architecture + load trained weights
-# ============================================================
+def eig_nmc(ctx, n_candidates=None):
+    if n_candidates is None:
+        eta_grid = generate_quantized_codebook(ctx.params.K, ctx.params.B, ctx.device)
+        NAMES["baseline"] = "EIG / NMC EXHAUSTIF"
+    else:
+        if not 1 <= n_candidates < ctx.params.R:
+            raise ValueError(f"Le nombre de beams doit être compris entre 1 et {ctx.params.R - 1}.")
+        beam_generator = torch.Generator(device=ctx.device).manual_seed(SEED + 1000)
+        NAMES["baseline"] = f"EIG / NMC RANDOM SEARCH ({n_candidates})"
+    print(f"Baseline beams: {ctx.params.R if n_candidates is None else n_candidates} | NMC N: {ctx.params.N}")
 
-policy = DADPolicy(
-    design_dim=design_dim,
-    observation_dim=observation_dim,
-    hidden_dim=hidden_dim,
-    encoding_dim=encoding_dim,
-).to(
-    device
-)
+    def select_beam(posterior, p_theta, sigma, eta_history, r_history):
+        # Nouveau pool à chaque décision, indépendant du RNG des estimations NMC.
+        candidates = eta_grid if n_candidates is None else generate_random_beam_candidates(
+            ctx.params.K, ctx.params.B, n_candidates, ctx.device, beam_generator,
+        )
+        eta, eig_values = choose_beam(
+            eta_grid=candidates, a_grid=ctx.a_grid, s=ctx.s, snr_db=SNR_DB,
+            sigma=sigma, p_theta=p_theta, posterior=posterior,
+            rho_grid=ctx.rho_grid, mode="mean", N=ctx.params.N,
+        )
+        return eta.squeeze(-1), eig_values.max()
 
-policy.load_state_dict(
-    state_dict
-)
-
-policy.eval()
+    return evaluate_method(ctx, "baseline", select_beam, nmc=True)
 
 
-# ============================================================
-# Small GPU warmup
-# ============================================================
-
-with torch.inference_mode():
-
-    dummy_eta = torch.empty(
-        1,
-        0,
-        params.K,
-        device=device,
-    )
-
-    dummy_r = torch.empty(
-        1,
-        0,
-        Ns,
-        device=device,
-    )
-
-    for _ in range(20):
-
-        _ = policy(
-            dummy_eta,
-            dummy_r,
+def load_policy(ctx):
+    checkpoint = torch.load(CHECKPOINT_PATH, map_location=ctx.device)
+    if "model_state_dict" in checkpoint:
+        state_dict = checkpoint["model_state_dict"]
+    elif "policy_state_dict" in checkpoint:
+        state_dict = checkpoint["policy_state_dict"]
+    else:
+        raise ValueError(
+            "Checkpoint invalide : clé model_state_dict ou policy_state_dict attendue."
         )
 
-sync_cuda()
-
-
-# ============================================================
-#
-# PART 3
-#
-# DAD
-#
-# ============================================================
-
-print()
-print(
-    "=" * 60
-)
-print(
-    "DAD"
-)
-print(
-    "=" * 60
-)
-
-
-with torch.inference_mode():
-
-    for r in range(
-        N_REAL
-    ):
-
-        theta_true = (
-            theta_true_all[r]
-        )
-
-        rho_true = (
-            rho_true_all[r]
-        )
-
-
-        sigma = sigma_from_snr(
-            s=s,
-            snr_db=SNR_DB,
-            rho_true=rho_true,
-        )
-
-
-        # ====================================================
-        # Same initial posterior
-        #
-        # DAD DOES NOT USE THIS posterior to choose its beam.
-        #
-        # It is only here:
-        #
-        # 1. to calculate the final estimator
-        # 2. to evaluate the NMC EIG of DAD's beam
-        # ====================================================
-
-        posterior = (
-            make_uniform_posterior(
-                theta_grid,
-                rho_grid,
-            )
-        )
-
-
-        # ====================================================
-        # Empty DAD history
-        # ====================================================
-
-        eta_history = torch.empty(
-            1,
-            0,
-            params.K,
-            dtype=torch.float32,
-            device=device,
-        )
-
-        r_history = torch.empty(
-            1,
-            0,
-            Ns,
-            dtype=torch.float32,
-            device=device,
-        )
-
-
-        eig_sum = 0.0
-        eig_steps = []
-
-
-        # ====================================================
-        # Adaptive DAD loop
-        # ====================================================
-
-        for t in range(
-            params.T
-        ):
-
-            # ============================================
-            # DAD FORWARD PASS
-            #
-            # This is the online design decision.
-            # ============================================
-
-            sync_cuda()
-
-            tic = time.perf_counter()
-
-            eta_t = policy(
-                eta_history,
-                r_history,
-            )
-
-            sync_cuda()
-
-            dad_decision_times.append(
-                time.perf_counter()
-                - tic
-            )
-
-
-            # eta_t : [1,K]
-            eta_vec = eta_t[0]
-
-
-            # ============================================
-            # Evaluate immediate EIG of DAD beam
-            #
-            # IMPORTANT:
-            # this is NOT used by DAD to make its choice.
-            #
-            # It is only a diagnostic so that the DAD
-            # beam can be evaluated with the SAME NMC
-            # estimator as the baseline.
-            # ============================================
-
-            p_theta = marginal_theta(
-                posterior
-            )
-
-            rho_mean = (
-                compute_rho_mean(
-                    posterior,
-                    rho_grid,
-                )
-            )
-
-            eig_t = estimate_eig_for_eta_marginal(
-                eta=eta_vec[:, None],
-                a_grid=a_grid,
-                s=s,
-                snr_db=SNR_DB,
-                posterior=posterior,
-                rho_grid=rho_grid,
-                N=params.N,
-            )
-
-            eig_sum += eig_t.item()
-
-            eig_steps.append(
-                eig_t.item()
-            )
-
-
-            # ============================================
-            # True physical observation
-            #
-            # SAME theta, rho and noise as baseline.
-            # ============================================
-
-            amp_vec = (
-                generate_measurement_fixed_noise(
-                    theta=theta_true,
-                    rho=rho_true,
-                    eta=eta_vec,
-                    s=s,
-                    sigma=sigma,
-                    params=params,
-                    noise_real=(
-                        noise_real_all[
-                            r,
-                            t,
-                        ]
-                    ),
-                    noise_imag=(
-                        noise_imag_all[
-                            r,
-                            t,
-                        ]
-                    ),
-                )
-            )
-
-
-            # ============================================
-            # Evaluation posterior
-            #
-            # Again:
-            # DAD does NOT see this posterior.
-            # ============================================
-
-            posterior = update_posterior(
-                eta=eta_vec,
-                a_grid=a_grid,
-                amp_vec=amp_vec,
-                posterior=posterior,
-                rho_grid=rho_grid,
-                s=s,
-                snr_db=SNR_DB,
-            )
-
-
-            # ============================================
-            # Update history seen by DAD
-            # ============================================
-
-            eta_history = torch.cat(
-                [
-                    eta_history,
-                    eta_t.unsqueeze(1),
-                ],
-                dim=1,
-            )
-
-            r_history = torch.cat(
-                [
-                    r_history,
-                    amp_vec.reshape(
-                        1,
-                        1,
-                        Ns,
-                    ),
-                ],
-                dim=1,
-            )
-
-
-        # ====================================================
-        # Final theta / rho estimates
-        #
-        # EXACT SAME estimator as baseline.
-        # ====================================================
-
-        theta_hat, rho_hat = (
-            get_final_estimates(
-                posterior,
-                theta_grid,
-                rho_grid,
-            )
-        )
-
-
-        theta_error = torch.abs(
-            torch.rad2deg(
-                theta_hat
-                - theta_true
-            )
-        )
-
-        rho_error = torch.abs(
-            rho_hat
-            - rho_true
-        )
-
-
-        # ====================================================
-        # Same trajectory g_L evaluator
-        # ====================================================
-
-        g_L_value = evaluate_g_L(
-            theta_true=theta_true,
-            theta_contrast=(
-                theta_contrast_all[r]
-            ),
-            eta_history=eta_history,
-            r_history=r_history,
-            rho_grid=rho_grid,
-            s=s,
-            snr_db=SNR_DB,
-            params=params,
-        )
-
-
-        # ====================================================
-        # Storage
-        # ====================================================
-
-        dad_theta_errors.append(
-            theta_error.item()
-        )
-
-        dad_rho_errors.append(
-            rho_error.item()
-        )
-
-        dad_eig_sums.append(
-            eig_sum
-        )
-
-        dad_eig_per_step.append(
-            eig_steps
-        )
-
-        dad_g_L.append(
-            g_L_value
-        )
-
-
-        print(
-            f"Realisation {r + 1:3d} | "
-            f"theta err = "
-            f"{theta_error.item():7.3f} deg | "
-            f"rho err = "
-            f"{rho_error.item():.4f} | "
-            f"sum EIG = "
-            f"{eig_sum:.3f} | "
-            f"g_L = "
-            f"{g_L_value:.3f}"
-        )
-
-
-# ============================================================
-# RANDOM CONTINUOUS BASELINE
-# ============================================================
-
-random_theta_errors = []
-random_rho_errors = []
-random_eig_sums = []
-random_eig_per_step = []
-random_g_L = []
-random_decision_times = []
-
-def random_continuous_beam(
-    K,
-    device,
-    dtype=torch.float32,
-):
-    eta = torch.zeros(
-        K,
-        device=device,
-        dtype=dtype,
-    )
-
-    eta[1:] = (
-        2.0
-        * math.pi
-        * torch.rand(
-            K - 1,
-            device=device,
-            dtype=dtype,
-        )
-    )
-
+    # Les checkpoints intermédiaires n'enregistrent pas les paramètres physiques.
+    design_dim = checkpoint.get("Nx", ctx.params.Nx) * checkpoint.get("Ny", ctx.params.Ny)
+    observation_dim = checkpoint.get("Ns", ctx.s.numel())
+    if design_dim != ctx.params.K or observation_dim != ctx.s.numel():
+        raise ValueError("Les dimensions du checkpoint ne correspondent pas au test (antennes / Ns).")
+    policy = DADPolicy(
+        design_dim=design_dim, observation_dim=observation_dim,
+        hidden_dim=state_dict["encoder.net.0.weight"].shape[0],
+        encoding_dim=state_dict["encoder.net.2.weight"].shape[0],
+    ).to(ctx.device)
+    try:
+        policy.load_state_dict(state_dict)
+    except RuntimeError as exc:
+        raise ValueError(
+            f"Le format de {CHECKPOINT_PATH} est reconnu, mais ses poids ne sont pas "
+            "compatibles avec l'architecture DAD actuelle. Utilise l'encodeur et "
+            "l'émetteur correspondant à l'entraînement de ce checkpoint.\n"
+            f"{exc}"
+        ) from exc
+    policy.eval()
+    print(f"Réseau chargé : {CHECKPOINT_PATH}")
+    return policy
+
+
+def dad(ctx, policy):
+    # Chauffe aussi l'encodeur, avec un historique non vide.
+    with torch.inference_mode():
+        for t in (0, max(1, ctx.params.T - 1)):
+            eta = torch.zeros(1, t, ctx.params.K, device=ctx.device)
+            obs = torch.zeros(1, t, ctx.s.numel(), device=ctx.device)
+            for _ in range(20):
+                policy(eta, obs)
+    sync_cuda(ctx.device)
+
+    def select_beam(posterior, p_theta, sigma, eta_history, r_history):
+        return policy(eta_history, r_history)[0], None
+
+    return evaluate_method(ctx, "dad", select_beam)
+
+
+def random_continuous_beam(K, device):
+    eta = torch.zeros(K, device=device)
+    eta[1:] = 2.0 * math.pi * torch.rand(K - 1, device=device)
     return eta
 
-eta_vec = random_continuous_beam(
-    params.K,
-    device,
-)
 
-idx = torch.randint(
-    low=0,
-    high=eta_grid.shape[1],
-    size=(1,),
-    device=device,
-)
-
-eta_vec = eta_grid[:, idx].squeeze()
-
-with torch.inference_mode():
-
-    for r in range(N_REAL):
-
-        theta_true = theta_true_all[r]
-        rho_true = rho_true_all[r]
-
-        sigma = sigma_from_snr(
-            s=s,
-            snr_db=SNR_DB,
-            rho_true=rho_true,
-        )
-
-        posterior = make_uniform_posterior(
-            theta_grid,
-            rho_grid,
-        )
-
-        eta_history = torch.empty(
-            1,
-            0,
-            params.K,
-            device=device,
-        )
-
-        r_history = torch.empty(
-            1,
-            0,
-            Ns,
-            device=device,
-        )
-
-        eig_sum = 0.0
-        eig_steps = []
-
-        for t in range(params.T):
-
-            # ============================================
-            # RANDOM BEAM
-            # ============================================
-
-            sync_cuda()
-
-            tic = time.perf_counter()
-
-            eta_vec = random_continuous_beam(
-                params.K,
-                device,
-            )
-
-            sync_cuda()
-
-            random_decision_times.append(
-                time.perf_counter() - tic
-            )
-
-
-            # ============================================
-            # Diagnostic EIG
-            # ============================================
-
-            p_theta = marginal_theta(
-                posterior
-            )
-
-            rho_mean = compute_rho_mean(
-                posterior,
-                rho_grid,
-            )
-
-            eig_t = estimate_eig_for_eta_marginal(
-                eta=eta_vec[:, None],
-                a_grid=a_grid,
-                s=s,
-                snr_db=SNR_DB,
-                posterior=posterior,
-                rho_grid=rho_grid,
-                N=params.N,
-            )
-
-            eig_sum += eig_t.item()
-            eig_steps.append(
-                eig_t.item()
-            )
-
-
-            # ============================================
-            # SAME PHYSICAL NOISE
-            # ============================================
-
-            amp_vec = (
-                generate_measurement_fixed_noise(
-                    theta=theta_true,
-                    rho=rho_true,
-                    eta=eta_vec,
-                    s=s,
-                    sigma=sigma,
-                    params=params,
-                    noise_real=noise_real_all[r, t],
-                    noise_imag=noise_imag_all[r, t],
-                )
-            )
-
-
-            # ============================================
-            # SAME posterior estimator
-            # ============================================
-
-            posterior = update_posterior(
-                eta=eta_vec,
-                a_grid=a_grid,
-                amp_vec=amp_vec,
-                posterior=posterior,
-                rho_grid=rho_grid,
-                s=s,
-                snr_db=SNR_DB,
-            )
-
-
-            # ============================================
-            # Save history
-            # ============================================
-
-            eta_history = torch.cat(
-                [
-                    eta_history,
-                    eta_vec.reshape(
-                        1,
-                        1,
-                        params.K,
-                    ),
-                ],
-                dim=1,
-            )
-
-            r_history = torch.cat(
-                [
-                    r_history,
-                    amp_vec.reshape(
-                        1,
-                        1,
-                        Ns,
-                    ),
-                ],
-                dim=1,
-            )
-
-
-        # ================================================
-        # SAME final estimator
-        # ================================================
-
-        theta_hat, rho_hat = (
-            get_final_estimates(
-                posterior,
-                theta_grid,
-                rho_grid,
-            )
-        )
-
-        theta_error = torch.abs(
-            torch.rad2deg(
-                theta_hat
-                - theta_true
-            )
-        )
-
-        rho_error = torch.abs(
-            rho_hat
-            - rho_true
-        )
-
-
-        # ================================================
-        # SAME g_L evaluator
-        # ================================================
-
-        g_L_value = evaluate_g_L(
-            theta_true=theta_true,
-            theta_contrast=theta_contrast_all[r],
-            eta_history=eta_history,
-            r_history=r_history,
-            rho_grid=rho_grid,
-            s=s,
-            snr_db=SNR_DB,
-            params=params,
-        )
-
-
-        random_theta_errors.append(
-            theta_error.item()
-        )
-
-        random_rho_errors.append(
-            rho_error.item()
-        )
-
-        random_eig_sums.append(
-            eig_sum
-        )
-
-        random_eig_per_step.append(
-            eig_steps
-        )
-
-        random_g_L.append(
-            g_L_value
-        )
-
-# ============================================================
-#
-# PART 4
-#
-# SUMMARY
-#
-# ============================================================
-
-print_summary(
-    name="BASELINE EIG / NMC",
-    theta_errors=(
-        baseline_theta_errors
-    ),
-    rho_errors=(
-        baseline_rho_errors
-    ),
-    eig_sums=(
-        baseline_eig_sums
-    ),
-    eig_sums_recomputed=(
-        baseline_eig_sums_recomputed
-    ),
-    g_L_values=(
-        baseline_g_L
-    ),
-    decision_times=(
-        baseline_decision_times
-    ),
-)
-
-
-print_summary(
-    name="DAD",
-    theta_errors=(
-        dad_theta_errors
-    ),
-    rho_errors=(
-        dad_rho_errors
-    ),
-    eig_sums=(
-        dad_eig_sums
-    ),
-    eig_sums_recomputed=(0.0,),
-    g_L_values=(
-        dad_g_L
-    ),
-    decision_times=(
-        dad_decision_times
-    ),
-)
-
-print_summary(
-    name="RANDOM CONTINUOUS",
-    theta_errors=random_theta_errors,
-    rho_errors=random_rho_errors,
-    eig_sums=random_eig_sums,
-    eig_sums_recomputed=(0.0,),
-    g_L_values=random_g_L,
-    decision_times=random_decision_times,
-)
-
-
-# ============================================================
-# Per-step EIG
-# ============================================================
-
-baseline_eig_per_step = torch.tensor(
-    baseline_eig_per_step
-)
-
-dad_eig_per_step = torch.tensor(
-    dad_eig_per_step
-)
-
-
-print()
-print(
-    "=" * 60
-)
-print(
-    "MEAN EIG PER STEP"
-)
-print(
-    "=" * 60
-)
-
-print(
-    " t | baseline |    DAD"
-)
-
-print(
-    "---+----------+----------"
-)
-
-for t in range(
-    params.T
-):
-
-    print(
-        f"{t + 1:2d} | "
-        f"{baseline_eig_per_step[:, t].mean().item():8.4f} | "
-        f"{dad_eig_per_step[:, t].mean().item():8.4f}"
-    )
-
-
-# ============================================================
-# Speedup
-# ============================================================
-
-baseline_time_mean = (
-    torch.tensor(
-        baseline_decision_times
-    ).mean()
-)
-
-dad_time_mean = (
-    torch.tensor(
-        dad_decision_times
-    ).mean()
-)
-
-
-print()
-print(
-    "=" * 60
-)
-print(
-    "ONLINE DECISION SPEED"
-)
-print(
-    "=" * 60
-)
-
-print(
-    f"Baseline : "
-    f"{1e3 * baseline_time_mean.item():.4f} ms"
-)
-
-print(
-    f"DAD      : "
-    f"{1e3 * dad_time_mean.item():.4f} ms"
-)
-
-print(
-    f"Speed-up : "
-    f"{(baseline_time_mean / dad_time_mean).item():.1f} x"
-)
-
-# ============================================================
-# Save comparison
-# ============================================================
-
-torch.save(
-    {
-        "snr_db":
-            SNR_DB,
-
-        "theta_true":
-            theta_true_all.detach().cpu(),
-
-        "rho_true":
-            rho_true_all.detach().cpu(),
-
-        "baseline_theta_errors":
-            torch.tensor(
-                baseline_theta_errors
-            ),
-
-        "dad_theta_errors":
-            torch.tensor(
-                dad_theta_errors
-            ),
-
-        "baseline_rho_errors":
-            torch.tensor(
-                baseline_rho_errors
-            ),
-
-        "dad_rho_errors":
-            torch.tensor(
-                dad_rho_errors
-            ),
-
-        "baseline_eig_per_step":
-            baseline_eig_per_step,
-
-        "dad_eig_per_step":
-            dad_eig_per_step,
-
-        "baseline_g_L":
-            torch.tensor(
-                baseline_g_L
-            ),
-
-        "dad_g_L":
-            torch.tensor(
-                dad_g_L
-            ),
-
-        "baseline_decision_times":
-            torch.tensor(
-                baseline_decision_times
-            ),
-
-        "dad_decision_times":
-            torch.tensor(
-                dad_decision_times
-            ),
-    },
-    "comparison_nmc_vs_dad.pt",
-)
-
-print()
-print(
-    "Results saved to "
-    "comparison_nmc_vs_dad.pt"
-)
+def random(ctx):
+    def select_beam(posterior, p_theta, sigma, eta_history, r_history):
+        return random_continuous_beam(ctx.params.K, ctx.device), None
+
+    return evaluate_method(ctx, "random", select_beam)
+
+
+def print_results(results, n_diagnostic):
+    for name, values in results.items():
+        theta = values["theta_errors"]
+        print(f"\n{'=' * 60}\n{NAMES[name]}\n{'=' * 60}")
+        print(f"Theta MAE       : {theta.mean().item():.4f} deg")
+        print(f"Theta median    : {theta.median().item():.4f} deg")
+        print(f"Theta RMSE      : {theta.square().mean().sqrt().item():.4f} deg")
+        print(f"rho MAE         : {values['rho_errors'].mean().item():.6f}")
+        print(f"Mean g_L        : {values['g_L'].mean().item():.4f} nats")
+        print(f"Decision time   : {1e3 * values['decision_times'].mean().item():.4f} ms / beam")
+        if "eig_sums" in values:
+            print(f"Sum EIG diagnostic (N={n_diagnostic}) : {values['eig_sums'].mean().item():.4f} nats")
+            if "eig_sums_recomputed" in values:
+                print(f"Sum EIG recomputed (N={N_RECOMPUTE}) : {values['eig_sums_recomputed'].mean().item():.4f} nats")
+            print("Mean EIG per step :")
+            for t, eig in enumerate(values["eig_per_step"].mean(dim=0), start=1):
+                print(f"  {t:2d} : {eig.item():.4f} nats")
+
+    if "baseline" in results and "dad" in results:
+        baseline_time = results["baseline"]["decision_times"].mean().item()
+        dad_time = results["dad"]["decision_times"].mean().item()
+        print(f"\nSpeed-up NMC / DAD : {baseline_time / dad_time:.1f} x")
+
+
+def save_results(ctx, results):
+    # Conserve les noms de clés existants et ajoute ceux du random si sélectionné.
+    saved = {
+        "snr_db": SNR_DB, "seed": SEED, "L_eval": L_EVAL,
+        "methods": list(results),
+        "theta_true": ctx.theta_true.cpu(), "rho_true": ctx.rho_true.cpu(),
+    }
+    if "dad" in results:
+        saved["checkpoint_path"] = str(CHECKPOINT_PATH)
+    for name, values in results.items():
+        for metric, value in values.items():
+            saved[f"{name}_{metric}"] = value
+    torch.save(saved, OUTPUT_PATH)
+    print(f"\nResults saved to {OUTPUT_PATH}")
+
+
+def main():
+    choices = choose_methods()
+    ctx = make_test_set()
+    if "1" in choices:
+        ctx.n_candidates = choose_eig_candidates(ctx.params)
+    # Vérifie le réseau avant de lancer une éventuelle longue évaluation NMC.
+    policy = load_policy(ctx) if "2" in choices else None
+    results = {}
+    if "1" in choices:
+        results["baseline"] = eig_nmc(ctx, ctx.n_candidates)
+    if "2" in choices:
+        results["dad"] = dad(ctx, policy)
+    if "3" in choices:
+        results["random"] = random(ctx)
+    print_results(results, ctx.params.N)
+    save_results(ctx, results)
+
+
+if __name__ == "__main__":
+    main()

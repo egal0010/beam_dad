@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Params:
-    Nx: int = 4
+    Nx: int = 8
     Ny: int = 1
 
     Mx: int = 1
@@ -12,7 +12,7 @@ class Params:
 
     M: int = 400
     N: int = 400
-    T: int = 10
+    T: int = 5
 
     B: int = 2
 

@@ -39,6 +39,7 @@ class DADPolicy(nn.Module):
         self.design_dim = design_dim
         self.encoding_dim = encoding_dim
         self.observation_dim = observation_dim
+        self.hidden_dim = hidden_dim
 
         self.encoder = Encoder(
             design_dim=design_dim,
@@ -131,7 +132,7 @@ class DADPolicy(nn.Module):
 
             else:
 
-                # [B, T, N] + [B, T]
+                # [B, T, N] + [B, T, Ns]
                 #
                 #            |
                 #          Encoder
