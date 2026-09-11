@@ -20,14 +20,22 @@ def estimate_eig_for_eta_mean(
     p_theta,
     rho_mean,
     N,
+    idx_theta_samples=None,
+    noise_samples=None,
+    return_terms=False,
 ):
     """
     Myopic EIG with rho replaced by its posterior mean.
 
-    eta      : [K,1]
-    a_grid   : [K,L]
-    p_theta  : [L]
-    rho_mean : scalar
+    Normal production use:
+        idx_theta_samples=None
+        noise_samples=None
+
+    Deterministic validation use:
+        idx_theta_samples : [N] exact theta indices
+        noise_samples     : [N, Ns] exact complex noise
+
+    The optional arguments do NOT change choose_beam() behavior.
     """
 
     # --------------------------------------------------------
@@ -36,7 +44,6 @@ def estimate_eig_for_eta_mean(
 
     b = beam_from_phases(eta)
 
-    # b^H a(theta_l)
     beam_response = (
         b.conj().T @ a_grid
     ).squeeze(0)  # [L]
@@ -44,7 +51,6 @@ def estimate_eig_for_eta_mean(
     alpha_theta = (
         rho_mean * beam_response
     )  # [L]
-
 
     # --------------------------------------------------------
     # p(theta | h_t)
@@ -62,41 +68,81 @@ def estimate_eig_for_eta_mean(
         p_theta + tiny
     )
 
-
     # --------------------------------------------------------
     # theta_n ~ p(theta | h_t)
     # --------------------------------------------------------
 
-    idx_theta_samples = torch.multinomial(
-        p_theta,
-        num_samples=N,
-        replacement=True,
-    )  # [N]
+    if idx_theta_samples is None:
+
+        idx_theta_samples = torch.multinomial(
+            p_theta,
+            num_samples=N,
+            replacement=True,
+        )
+
+    else:
+
+        idx_theta_samples = (
+            idx_theta_samples
+            .to(device=eta.device, dtype=torch.long)
+        )
+
+        if idx_theta_samples.numel() != N:
+            raise ValueError(
+                "idx_theta_samples must contain exactly N samples"
+            )
 
     alpha_samples = alpha_theta[
         idx_theta_samples
     ]  # [N]
 
-
     # --------------------------------------------------------
-    # r_n ~ p(r | theta_n, rho_mean, eta)
+    # Future observations
     # --------------------------------------------------------
 
-    y_samples = simulate_y(
-        alpha_samples,
-        s,
-        sigma,
-    )
+    if noise_samples is None:
+
+        # Exact same production path as before
+        y_samples = simulate_y(
+            alpha_samples,
+            s,
+            sigma,
+        )
+
+    else:
+
+        noise_samples = noise_samples.to(
+            device=eta.device,
+            dtype=alpha_theta.dtype,
+        )
+
+        expected_shape = (
+            N,
+            s.numel(),
+        )
+
+        if tuple(noise_samples.shape) != expected_shape:
+            raise ValueError(
+                f"noise_samples must have shape {expected_shape}, "
+                f"got {tuple(noise_samples.shape)}"
+            )
+
+        mu_samples = (
+            alpha_samples[:, None]
+            * s[None, :]
+        )
+
+        y_samples = (
+            mu_samples
+            + noise_samples
+        )
 
     amp_samples = torch.abs(
         y_samples
     )  # [N,Ns]
 
-
     # --------------------------------------------------------
     # p(r_n | theta_l, rho_mean, eta)
-    #
-    # [N,L]
     # --------------------------------------------------------
 
     log_likelihood_all = (
@@ -106,13 +152,10 @@ def estimate_eig_for_eta_mean(
             alpha_theta[None, :],
             sigma**2,
         )
-    )
-
+    )  # [N,L]
 
     # --------------------------------------------------------
     # Numerator
-    #
-    # log p(r_n | theta_n, rho_mean, eta)
     # --------------------------------------------------------
 
     n_idx = torch.arange(
@@ -125,14 +168,8 @@ def estimate_eig_for_eta_mean(
         idx_theta_samples,
     ]
 
-
     # --------------------------------------------------------
     # Denominator
-    #
-    # log sum_theta
-    #
-    # p(theta | h_t)
-    # p(r_n | theta, rho_mean, eta)
     # --------------------------------------------------------
 
     log_p_den = torch.logsumexp(
@@ -141,14 +178,22 @@ def estimate_eig_for_eta_mean(
         dim=1,
     )
 
-
     # --------------------------------------------------------
     # NMC EIG
     # --------------------------------------------------------
 
-    return (
-        log_p_num - log_p_den
-    ).mean()
+    eig_terms = (
+        log_p_num
+        - log_p_den
+    )
+
+    eig = eig_terms.mean()
+
+    if return_terms:
+        return eig, eig_terms
+
+    return eig
+
 
 # ============================================================
 # Marginalized-rho EIG

@@ -1,17 +1,19 @@
 import math
 
 import torch
+from torch.utils.checkpoint import checkpoint
 
 from modules.beam_eig.array_model import (
     phase_to_beam,
     steering_vector_batch,
 )
-
 from modules.beam_eig.likelihood import (
     log_amplitude_vector_likelihood,
 )
-
-from modules.beam_eig.simulator import (simulate_y,sigma_from_snr)
+from modules.beam_eig.simulator import (
+    simulate_y,
+    sigma_from_snr,
+)
 
 
 def trajectory_log_likelihood(
@@ -22,118 +24,157 @@ def trajectory_log_likelihood(
     log_p_rho_prior,
 ):
     """
-    theta_candidates : [B, C] avec C = L + 1
-    eta_history      : [B, T, N]
-    r_history        : [B, T, Ns]
-    log_p_rho_prior  : [R]
+    Compute log p(h_T | theta_c) for all theta candidates, with rho
+    marginalized at the end of the trajectory.
+
+    Parameters
+    ----------
+    theta_candidates : [B, C]
+        C = L + 1 candidates. Column 0 is the true theta.
+    eta_history : [B, T, N]
+    r_history : [B, T, Ns]
+    log_p_rho_prior : [R]
 
     Returns
     -------
     log_prob : [B, C]
+        log p(h_T | theta_c), with rho marginalized.
 
-        log p(h_T | theta_c)
+    Notes
+    -----
+    Because rho is static across the whole trajectory,
 
-    avec rho marginalisé.
+        p(h_T | theta)
+        = sum_rho p(rho) prod_t p(r_t | theta, rho, eta_t)
+
+    so we can accumulate the conditional log-likelihood over t and
+    marginalize rho only once at the end.
+
+    This is mathematically equivalent to the sequential Bayes update used
+    previously, but avoids repeated posterior normalization operations.
     """
 
-    B, T, N = eta_history.shape
+    if theta_candidates.ndim != 2:
+        raise ValueError(
+            "theta_candidates must have shape [B, C], "
+            f"got {tuple(theta_candidates.shape)}."
+        )
+
+    B, T, _ = eta_history.shape
     C = theta_candidates.shape[1]
-    Ns = r_history.shape[-1]
     R = log_p_rho_prior.shape[0]
 
-    # p(rho | theta, h_0) = p(rho)
-    log_p_rho = (
-        log_p_rho_prior
-        .view(1, 1, R)
-        .expand(B, C, R)
-    )
+    if theta_candidates.shape[0] != B:
+        raise ValueError("Batch dimension mismatch between candidates and history.")
 
-    total_log_prob = torch.zeros(
-        B,
-        C,
-        device=eta_history.device,
-        dtype=eta_history.dtype,
-    )
+    # [1, 1, R]. Broadcasting creates [B, C, R] only when needed.
+    log_joint_rho = log_p_rho_prior.view(1, 1, R)
 
     for t in range(T):
-
-        eta_t = eta_history[:, t, :]
-        # [B, N]
-
-        r_t = r_history[:, t, :]
-        # [B, Ns]
-
-        eta_t = eta_t.unsqueeze(1).expand(
-            B,
-            C,
-            N,
-        )
-
-        r_t = r_t.unsqueeze(1).expand(
-            B,
-            C,
-            Ns,
-        )
-
-        # -------------------------------------------------
-        # log p(r_t | theta, rho, eta_t)
-        # -------------------------------------------------
+        # IMPORTANT: do not expand over C here.
+        # Broadcasting inside log_likelihood_fn handles the candidate dimension.
+        eta_t = eta_history[:, t, :].unsqueeze(1)  # [B, 1, N]
+        r_t = r_history[:, t, :].unsqueeze(1)      # [B, 1, Ns]
 
         log_like_t = log_likelihood_fn(
             theta_candidates,
             eta_t,
             r_t,
         )
-
         # [B, C, R]
 
-        # -------------------------------------------------
-        # p(rho | theta,h_{t-1})
-        # *
-        # p(r_t | theta,rho,eta_t)
-        # -------------------------------------------------
+        log_joint_rho = log_joint_rho + log_like_t
 
-        log_joint_rho = (
-            log_p_rho
-            + log_like_t
+    # [B, C]
+    return torch.logsumexp(
+        log_joint_rho,
+        dim=-1,
+    )
+
+
+def trajectory_log_likelihood_chunked(
+    theta_candidates,
+    eta_history,
+    r_history,
+    log_likelihood_fn,
+    log_p_rho_prior,
+    candidate_chunk_size=32,
+    use_checkpoint=True,
+):
+    """
+    Same result as trajectory_log_likelihood(), but evaluates the candidate
+    dimension C=L+1 in chunks.
+
+    The expensive Rice likelihood internally creates tensors with a dimension
+    similar to [B, C, R, Ns]. Chunking replaces C by a much smaller C_chunk.
+
+    If use_checkpoint=True, activation checkpointing recomputes each candidate
+    chunk during backward instead of storing all large intermediate tensors.
+    This trades extra compute time for substantially lower GPU memory usage.
+    """
+
+    if candidate_chunk_size is None:
+        return trajectory_log_likelihood(
+            theta_candidates=theta_candidates,
+            eta_history=eta_history,
+            r_history=r_history,
+            log_likelihood_fn=log_likelihood_fn,
+            log_p_rho_prior=log_p_rho_prior,
         )
 
-        # -------------------------------------------------
-        # p(r_t | theta,h_{t-1},eta_t)
-        #
-        # marginalisation de rho
-        # -------------------------------------------------
+    if candidate_chunk_size <= 0:
+        raise ValueError("candidate_chunk_size must be positive or None.")
 
-        log_predictive_t = torch.logsumexp(
-            log_joint_rho,
-            dim=-1,
+    C = theta_candidates.shape[1]
+
+    # If the chunk already covers all candidates, avoid unnecessary Python loop.
+    if candidate_chunk_size >= C and not use_checkpoint:
+        return trajectory_log_likelihood(
+            theta_candidates=theta_candidates,
+            eta_history=eta_history,
+            r_history=r_history,
+            log_likelihood_fn=log_likelihood_fn,
+            log_p_rho_prior=log_p_rho_prior,
         )
 
-        # [B, C]
+    log_prob_chunks = []
 
-        # -------------------------------------------------
-        # Accumulation :
-        #
-        # log p(h_t | theta)
-        # -------------------------------------------------
-
-        total_log_prob = (
-            total_log_prob
-            + log_predictive_t
+    def compute_chunk(theta_chunk, eta_hist, r_hist):
+        return trajectory_log_likelihood(
+            theta_candidates=theta_chunk,
+            eta_history=eta_hist,
+            r_history=r_hist,
+            log_likelihood_fn=log_likelihood_fn,
+            log_p_rho_prior=log_p_rho_prior,
         )
 
-        # -------------------------------------------------
-        # Bayes update :
-        #
-        # p(rho | theta,h_t)
-        # -------------------------------------------------
+    for start in range(0, C, candidate_chunk_size):
+        end = min(start + candidate_chunk_size, C)
 
-        log_p_rho = (
-            log_joint_rho
-            - log_predictive_t.unsqueeze(-1)
-        )
+        theta_chunk = theta_candidates[:, start:end]
 
-    return total_log_prob
+        if use_checkpoint:
+            log_prob_chunk = checkpoint(
+                compute_chunk,
+                theta_chunk,
+                eta_history,
+                r_history,
+                use_reentrant=False,
+            )
+        else:
+            log_prob_chunk = compute_chunk(
+                theta_chunk,
+                eta_history,
+                r_history,
+            )
+
+        log_prob_chunks.append(log_prob_chunk)
+
+    # [B, C]. This tensor is small compared with [B, C, R, Ns].
+    return torch.cat(
+        log_prob_chunks,
+        dim=1,
+    )
 
 
 def contrastive_bound_from_log_prob(log_prob):
@@ -171,10 +212,12 @@ def contrastive_bound_from_log_prob(log_prob):
         )
 
     log_prob_true = log_prob[:, 0]
+
     log_evidence = (
         torch.logsumexp(log_prob, dim=1)
         - math.log(C)
     )
+
     g_L = log_prob_true - log_evidence
 
     return g_L.mean(), g_L
@@ -186,20 +229,30 @@ def contrastive_bound(
     r_history,
     log_likelihood_fn,
     log_p_rho_prior,
+    candidate_chunk_size=32,
+    use_checkpoint=True,
 ):
-    log_prob = trajectory_log_likelihood(
-        theta_candidates,
-        eta_history,
-        r_history,
-        log_likelihood_fn,
-        log_p_rho_prior,
+    """
+    Chunked/checkpointed version of the DAD contrastive bound.
+
+    Set candidate_chunk_size=None to recover the unchunked calculation.
+    Set use_checkpoint=False to chunk without activation checkpointing.
+    """
+
+    log_prob = trajectory_log_likelihood_chunked(
+        theta_candidates=theta_candidates,
+        eta_history=eta_history,
+        r_history=r_history,
+        log_likelihood_fn=log_likelihood_fn,
+        log_p_rho_prior=log_p_rho_prior,
+        candidate_chunk_size=candidate_chunk_size,
+        use_checkpoint=use_checkpoint,
     )
 
     return contrastive_bound_from_log_prob(log_prob)
 
 
 def _as_beam(design):
-
     if torch.is_complex(design):
         return design
 
@@ -213,7 +266,6 @@ def _to_real_tensor(
     dtype = reference.real.dtype
 
     if torch.is_tensor(value):
-
         return value.to(
             device=reference.device,
             dtype=dtype,
@@ -235,8 +287,7 @@ def make_log_likelihood_fn(
     """
     rho_grid : [R]
 
-    Retourne une likelihood évaluée pour
-    TOUS les rho de la grille.
+    Returns a likelihood function evaluated for all rho values.
     """
 
     rho_grid = _to_real_tensor(
@@ -248,11 +299,13 @@ def make_log_likelihood_fn(
         s=s,
         snr_db=snr_db,
         rho_true=rho_grid,
-    )  # [R]
+    )
+    # [R]
 
     sigma2_grid = (
         sigma_grid**2
-    )[None, None, :, None]  # [1,R,1]
+    )[None, None, :, None]
+    # [1, 1, R, 1]
 
     def log_likelihood_fn(
         theta,
@@ -261,8 +314,8 @@ def make_log_likelihood_fn(
     ):
         """
         theta   : [B, C]
-        eta     : [B, C, N]
-        amp_vec : [B, C, Ns]
+        eta     : [B, 1, N] or [B, C, N]
+        amp_vec : [B, 1, Ns] or [B, C, Ns]
 
         Returns
         -------
@@ -273,32 +326,27 @@ def make_log_likelihood_fn(
             theta,
             params,
         )
-
         # [B, C, N]
 
         b = phase_to_beam(
             eta,
         )
-
-        # [B, C, N]
+        # [B, 1, N] is sufficient; broadcasting handles C.
 
         array_response = torch.sum(
             torch.conj(b) * a,
             dim=-1,
         )
-
         # [B, C]
 
         alpha = (
             array_response.unsqueeze(-1)
             * rho_grid.view(1, 1, -1)
         )
-
         # [B, C, R]
 
         amp_vec = amp_vec.unsqueeze(-2)
-
-        # [B, C, 1, Ns]
+        # [B, 1, 1, Ns] if amp_vec came in as [B,1,Ns]
 
         return log_amplitude_vector_likelihood(
             amp_vec=amp_vec,
@@ -306,8 +354,6 @@ def make_log_likelihood_fn(
             alpha=alpha,
             sigma2=sigma2_grid,
         )
-
-
         # [B, C, R]
 
     return log_likelihood_fn
@@ -320,9 +366,7 @@ def make_observation_fn(
     params,
 ):
     """
-    Ici rho = rho_true.
-
-    C'est le vrai rho du canal simulé.
+    Here rho is the true channel amplitude used by the simulator.
     """
 
     rho = _to_real_tensor(
@@ -334,7 +378,7 @@ def make_observation_fn(
         s=s,
         snr_db=snr_db,
         rho_true=rho,
-    )  # [R]
+    )
 
     def observation_fn(
         theta,

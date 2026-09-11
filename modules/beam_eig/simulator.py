@@ -1,4 +1,3 @@
-import math
 import torch
 
 from modules.beam_eig.array_model import (
@@ -7,7 +6,7 @@ from modules.beam_eig.array_model import (
 )
 
 
-def simulate_y(alpha, s, sigma):
+def simulate_y(alpha, s, sigma, *, noise=None):
     """
     alpha :
         scalar      -> retourne [Ns]
@@ -16,6 +15,11 @@ def simulate_y(alpha, s, sigma):
 
     s :
         [Ns]
+
+    noise :
+        Tuple optionnel (noise_real, noise_imag) de bruits N(0, 1),
+        compatibles avec [..., Ns], sur le même device que alpha.
+        Permet de partager le bruit entre méthodes sans nouveau tirage.
     """
 
     # Ajoute une dimension à alpha avant la dimension des symboles
@@ -30,8 +34,11 @@ def simulate_y(alpha, s, sigma):
     while sigma.ndim < mu.ndim:
         sigma = sigma.unsqueeze(-1)
 
-    noise_real = torch.randn_like(mu.real)
-    noise_imag = torch.randn_like(mu.real)
+    if noise is None:
+        noise_real = torch.randn_like(mu.real)
+        noise_imag = torch.randn_like(mu.real)
+    else:
+        noise_real, noise_imag = noise
 
     w = sigma / torch.sqrt(
         torch.tensor(
@@ -54,6 +61,8 @@ def generate_amplitude_measurement(
     s,
     sigma,
     params,
+    *,
+    noise=None,
 ):
     a = steering_vector(theta, params)
     b = beam_from_phases(eta)
@@ -62,7 +71,7 @@ def generate_amplitude_measurement(
         b.conj().T @ a
     ).squeeze()
 
-    y = simulate_y(alpha, s, sigma)
+    y = simulate_y(alpha, s, sigma, noise=noise)
 
     return torch.abs(y)
 

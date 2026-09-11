@@ -1,0 +1,17 @@
+{
+  "target_bound": null,
+  "first_target_step": null,
+  "first_target_train_seconds": null,
+  "seed": 33,
+  "method": "deepsets",
+  "parameter_count": 34359,
+  "amplitude_parameter_count": 5360,
+  "selected_step": 500,
+  "selected_train_seconds": 8.406154638389125,
+  "validation_bound": 0.9773776604561135,
+  "test_bound": 1.0168343040859327,
+  "test_mc_se": 0.0575213813495003,
+  "test_trajectories": 512,
+  "total_train_seconds": 8.406154638389125,
+  "train_trajectories_per_second": 1903.3673169574342
+}

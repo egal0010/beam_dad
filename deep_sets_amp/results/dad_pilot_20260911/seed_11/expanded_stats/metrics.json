@@ -1,0 +1,17 @@
+{
+  "target_bound": null,
+  "first_target_step": null,
+  "first_target_train_seconds": null,
+  "seed": 11,
+  "method": "expanded_stats",
+  "parameter_count": 34351,
+  "amplitude_parameter_count": 5352,
+  "selected_step": 400,
+  "selected_train_seconds": 7.208174156257883,
+  "validation_bound": 1.1806228270288557,
+  "test_bound": 1.1511114513268694,
+  "test_mc_se": 0.06932316702015522,
+  "test_trajectories": 512,
+  "total_train_seconds": 8.998910843976773,
+  "train_trajectories_per_second": 1777.992945747346
+}

@@ -29,8 +29,6 @@ class Emitter(nn.Module):
         self.emitter = nn.Sequential(
             nn.Linear(encoding_dim, 64),
             nn.LeakyReLU(0.01),
-            nn.Linear(64, 64),
-            nn.LeakyReLU(0.01),
             nn.Linear(64, design_dim-1),
         )
 

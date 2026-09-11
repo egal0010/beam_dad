@@ -1,0 +1,61 @@
+{
+  "config": {
+    "methods": [
+      "deepsets",
+      "raw",
+      "mean_var",
+      "expanded_stats"
+    ],
+    "seeds": [
+      11,
+      22,
+      33
+    ],
+    "steps": 500,
+    "batch_size": 32,
+    "L": 32,
+    "experiments": 3,
+    "snr_db": 0.0,
+    "nx": 8,
+    "rho_grid_size": 50,
+    "hidden_dim": 256,
+    "encoding_dim": 64,
+    "learning_rate": 5e-05,
+    "grad_clip": 1.0,
+    "candidate_chunk_size": 33,
+    "use_checkpoint": false,
+    "target_bound": null,
+    "eval_every": 50,
+    "eval_batches": 8,
+    "eval_batch_size": 64,
+    "device": "cuda:1",
+    "warmup_steps": 2,
+    "threads": 1,
+    "output": "deep_sets_amp/results/dad_pilot_20260911"
+  },
+  "created_utc": "2026-09-11T13:59:21.232339+00:00",
+  "python": "3.11.16",
+  "torch": "2.11.0+cu128",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+  "device": "cuda:1",
+  "torch_threads": 1,
+  "device_name": "NVIDIA RTX A6000",
+  "git_head": "091372033cfea0337cf894780652af8de4f29bb0",
+  "source_sha256": {
+    "deep_sets_amp/benchmark_dad.py": "805326a44279725206de1c48ed569926d0175ccc31627957518048062d65cbbe",
+    "deep_sets_amp/benchmark_models.py": "20228198ac4f7b2d3406e69bc13d112727834f63d933ef6e49358b652b12ce9e",
+    "modules/dad/policy.py": "c3629ba9f0df114fa518ea0869c9940a5cc6dfff97328e19c167fbfa1f15213b",
+    "modules/dad/encoder.py": "d4150e4261732b0643c7f23089a70e341c3fc26719bb4f96b99b4af3de94cc2a",
+    "modules/dad/encoder_amp.py": "95bfd8f26c396926934857b84a803327675d3c16023d6a6cf5bc0e3653fead24",
+    "modules/dad/emitter.py": "3130ee0665356ecf8c775b205bc99ceef0512154242724e39e18d69306c8882d",
+    "modules/dad/contrastive.py": "65c836909239e71a52907ed65bc753ca0f1d83039dca68623b35768bed2b7691",
+    "modules/dad/experiment.py": "a784e2f796b5df41f3f4a208f95caf76d4d0b96d3c005505e9a0acf4a7088fae",
+    "modules/beam_eig/likelihood.py": "5aaa5780e4600537d73e1a3033dee7502ed57423642d7d8e86846e660b1237d9",
+    "modules/beam_eig/simulator.py": "437ddca61b9059787aec67fd949326b9484ca21b32c88eed6984d36ec5064574",
+    "modules/beam_eig/array_model.py": "9503f9c772f01c0f062e197b3292ef029ea761a4519f9d17e8af4b63731fd558",
+    "modules/beam_eig/pilot.py": "383b510ebf03d739f0213f09029ef161e33cf26f3dc8e5bcc862a1741b396f06",
+    "modules/beam_eig/params.py": "dc14e431c39fc7f1e3bd7a367803d3111d76fa2ed42c689459122a600d299ab7"
+  },
+  "objective": "contrastive bound on information about theta with rho marginalized; not angle error",
+  "timing": "synchronized simulation+objective+backward+optimizer seconds, excluding warm-up, validation and I/O"
+}

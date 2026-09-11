@@ -1,0 +1,55 @@
+{
+  "config": {
+    "output": "/home/egalarraga/beam_dad/deep_sets_amp/results/rice_physical_20260911",
+    "scenarios": [
+      "physical_fixed",
+      "physical_snr",
+      "uniform_fixed"
+    ],
+    "methods": [
+      "deepsets",
+      "raw",
+      "mean_var",
+      "expanded_stats"
+    ],
+    "seeds": [
+      11,
+      22,
+      33
+    ],
+    "steps": 3000,
+    "batch_size": 512,
+    "learning_rate": 0.001,
+    "eval_every": 100,
+    "validation_samples": 4096,
+    "test_samples": 10000,
+    "calibration_samples": 16384,
+    "eval_batch_size": 512,
+    "timing_repeats": 30,
+    "warmup_steps": 3,
+    "nx": 8,
+    "device": "cuda:1",
+    "threads": 1,
+    "save_predictions": true
+  },
+  "metadata": {
+    "torch": "2.11.0+cu128",
+    "python": "3.11.16",
+    "device": "NVIDIA RTX A6000",
+    "cuda": "12.8",
+    "source_sha256": {
+      "deep_sets_amp/benchmark_rice.py": "365d2829e6926f6ac9e217eed9e78ecb31e4e0353b68f168cf0db733b428a96e",
+      "deep_sets_amp/benchmark_data.py": "cfc464ca48347c0cbc946e13a821824933d5667de4b06ade2eb2693d48474464",
+      "deep_sets_amp/benchmark_models.py": "20228198ac4f7b2d3406e69bc13d112727834f63d933ef6e49358b652b12ce9e",
+      "modules/dad/encoder_amp.py": "95bfd8f26c396926934857b84a803327675d3c16023d6a6cf5bc0e3653fead24",
+      "modules/beam_eig/array_model.py": "9503f9c772f01c0f062e197b3292ef029ea761a4519f9d17e8af4b63731fd558",
+      "modules/beam_eig/simulator.py": "437ddca61b9059787aec67fd949326b9484ca21b32c88eed6984d36ec5064574",
+      "modules/beam_eig/pilot.py": "383b510ebf03d739f0213f09029ef161e33cf26f3dc8e5bcc862a1741b396f06",
+      "modules/beam_eig/params.py": "dc14e431c39fc7f1e3bd7a367803d3111d76fa2ed42c689459122a600d299ab7"
+    },
+    "training_seed_offset": 1000000,
+    "validation_seed_offset": 2000000,
+    "test_seed_offset": 3000000,
+    "calibration_seed_offset": 4000000
+  }
+}

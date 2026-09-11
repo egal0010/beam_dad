@@ -12,7 +12,9 @@ def update_posterior(
     posterior,
     rho_grid,
     s,
-    snr_db,
+    snr_db=None,
+    sigma=None,
+    mode=None,
 ):
     """
     posterior(theta, rho) après une nouvelle observation.
@@ -37,22 +39,30 @@ def update_posterior(
         * rho_grid[None, :]
     )  # [L, Lrho]
 
-    sigma_grid = sigma_from_snr(
+    if mode =="sigma_fixed":
+        sigma2=sigma**2
+
+    elif mode == "sigma_snr":
+
+        sigma_grid = sigma_from_snr(
         s=s,
         snr_db=snr_db,
         rho_true=rho_grid,
-    )  # [R]
-
-    sigma2_grid = (
-        sigma_grid**2
-    )[None, :, None]  # [1,R,1]
+        ) 
+         # [R]
+        sigma2 = (
+            sigma_grid**2
+        )[None, :, None]  # [1,R,1]
+        
+    else:
+        raise ValueError(f"Unknown mode: {mode}")    
 
     # log likelihood pour toutes les hypothèses
     log_likelihood = log_amplitude_vector_likelihood(
         amp_vec,
         s,
         alpha_grid,
-        sigma2_grid,
+        sigma2,
     )  # [L, Lrho]
 
     tiny = torch.finfo(posterior.dtype).tiny

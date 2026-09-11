@@ -1,3 +1,4 @@
+from email import generator
 import time
 import sys
 from pathlib import Path
@@ -40,7 +41,7 @@ from modules.beam_eig.simulator import (
 # Setup
 # ============================================================
 
-params = Params()
+params = Params(R=400)
 
 device = torch.device(
     "cuda"
@@ -131,12 +132,22 @@ a_grid = steering_vector(
 # Codebook
 # ============================================================
 
-eta_grid = generate_quantized_codebook(
+full_codebook = generate_quantized_codebook(
     params.K,
     params.B,
     device,
 )
 
+generator = torch.Generator(device=device)
+generator.manual_seed(42)
+
+indices = torch.randperm(
+    full_codebook.shape[1],
+    generator=generator,
+    device=device,
+)[: params.R]
+
+eta_grid = full_codebook[:, indices]
 
 # ============================================================
 # Python output storage
@@ -268,11 +279,12 @@ with torch.no_grad():
                         eta_grid,
                         a_grid,
                         s,
+                        snr_db.item(),
                         sigma,
                         p_theta,
                         posterior,
                         rho_grid,
-                        type="mean",
+                        mode="mean",
                         N=params.N,
                     )
                 )
@@ -290,9 +302,6 @@ with torch.no_grad():
                         s,
                         sigma,
                         params,
-                        posterior,
-                        rho_grid,
-                        type="mean",
                     )
                 )
 
@@ -309,7 +318,9 @@ with torch.no_grad():
                         posterior,
                         rho_grid,
                         s,
+                        snr_db,
                         sigma,
+                        mode="sigma_fixed",
                     )
                 )
 
@@ -508,6 +519,6 @@ savemat(
 )
 
 print(
-    "\nResults saved to "
+    "\nResults saved to ",
     str(SCRIPT_DIR / "results_pytorch_baseline.mat")
 )        
