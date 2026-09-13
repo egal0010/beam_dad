@@ -2,10 +2,11 @@
 
 Cette version permet de choisir :
   - EIG rho-marginalisé ou rho_mean plug-in ;
+  - en mode mean, sigma = c*rho_true ou sigma = c*rho_mean ;
   - recherche EIG exhaustive quantifiée ;
   - recherche EIG aléatoire quantifiée ou continue.
 
-Le posterior reste ici en mode ``sigma_snr``.
+Le posterior suit POSTERIOR_MODE, indépendamment du sigma choisi pour l'EIG.
 """
 
 import math
@@ -37,13 +38,13 @@ from modules.dad.contrastive import contrastive_bound, make_log_likelihood_fn
 # ============================================================
 
 SNR_DB = 0
-N_REAL = 100
+N_REAL = 200
 L_EVAL = 3000       # Contrastifs pour l'évaluation finale.
 N_RECOMPUTE = 5000  # Recalcul EIG du beam choisi pour toutes les méthodes.
 SEED = 42
 
 CHECKPOINT_PATH = Path(
-    "model_checkpoints/checkpoints_nx8/checkpoints_T3/dad_T10_best.pt"
+    "training/checkpoints_nx8_T5_ds/dad_T5_step_20000.pt"
 )
 OUTPUT_PATH = Path("comparison_nmc_vs_dad.pt")
 
@@ -54,7 +55,12 @@ NAMES = {
 }
 
 # Le modèle d'inférence utilisé dans ce script.
-POSTERIOR_MODE = "sigma_snr"
+POSTERIOR_MODE = "sigma_fixed"
+
+MEAN_EIG_SIGMA_LABELS = {
+    "rho_true": "sigma = c*rho_true (fixe par réalisation)",
+    "rho_mean": "sigma = c*rho_mean (actualisé avec le posterior)",
+}
 
 
 # ============================================================
@@ -85,6 +91,23 @@ def choose_eig_mode():
             return "marginal"
         if choice == "2":
             return "mean"
+        print("Choisis 1 ou 2.")
+
+
+def choose_mean_eig_sigma():
+    print("\nSigma pour l'EIG rho_mean plug-in :")
+    print("  c = sqrt(mean(|s|^2) / 10^(SNR_dB/10))")
+    print(f"  1 = {MEAN_EIG_SIGMA_LABELS['rho_true']}")
+    print(f"  2 = {MEAN_EIG_SIGMA_LABELS['rho_mean']}")
+    print("Ce choix s'applique à la sélection des beams et aux diagnostics EIG.")
+    print(f"Mesures : sigma = c*rho_true ; posterior : {POSTERIOR_MODE}.")
+
+    while True:
+        choice = input("Scénario sigma EIG : ").strip()
+        if choice == "1":
+            return "rho_true"
+        if choice == "2":
+            return "rho_mean"
         print("Choisis 1 ou 2.")
 
 
@@ -246,13 +269,18 @@ def evaluate_g_L(ctx, realization, eta_history, r_history):
     return bound.item()
 
 
-def sigma_for_mean_eig(ctx, posterior):
-    """Sigma cohérent avec le plug-in rho_mean sous le modèle sigma_snr.
+def sigma_for_mean_eig(ctx, posterior, sigma_scenario, mean_eig_sigma):
+    """Choisit le bruit des observations simulées et du likelihood EIG.
 
-    Le posterior est en mode sigma_snr, donc pour l'approximation rho_mean on
-    remplace rho par E[rho|h] aussi dans sigma(rho), au lieu d'utiliser
-    sigma(rho_true), qui donnerait une information oracle à la méthode EIG.
+    rho_true : sigma physique, constant pendant une réalisation.
+    rho_mean : sigma recalculé à partir du posterior avant chaque décision.
+    Dans les deux cas, l'amplitude du signal EIG utilise rho_mean.
     """
+
+    if mean_eig_sigma == "rho_true":
+        return sigma_scenario
+    if mean_eig_sigma != "rho_mean":
+        raise ValueError("mean_eig_sigma must be 'rho_true' or 'rho_mean'")
 
     rho_mean = compute_rho_mean(posterior, ctx.rho_grid)
     return sigma_from_snr(
@@ -269,13 +297,16 @@ def estimate_eig_for_selected_beam(
     sigma_scenario,
     eig_mode,
     N,
+    mean_eig_sigma="rho_mean",
 ):
     """Évalue un beam déjà choisi avec exactement le mode EIG sélectionné."""
 
     p_theta = marginal_theta(posterior)
 
     if eig_mode == "mean":
-        sigma_eig = sigma_for_mean_eig(ctx, posterior)
+        sigma_eig = sigma_for_mean_eig(
+            ctx, posterior, sigma_scenario, mean_eig_sigma
+        )
     else:
         # En mode marginal, estimate_eig_for_eta_marginal recalcule sigma(rho_j)
         # pour chaque candidat rho_j ; ce sigma n'est donc pas utilisé.
@@ -303,7 +334,9 @@ def estimate_eig_for_selected_beam(
 
 
 @torch.inference_mode()
-def evaluate_method(ctx, name, select_beam, *, eig_mode, nmc=False):
+def evaluate_method(
+    ctx, name, select_beam, *, eig_mode, mean_eig_sigma="rho_mean", nmc=False
+):
     """Boucle commune : décision, observation, posterior et scores finaux."""
 
     print(f"\n{'=' * 60}\n{NAMES[name]}\n{'=' * 60}")
@@ -376,6 +409,7 @@ def evaluate_method(ctx, name, select_beam, *, eig_mode, nmc=False):
                     sigma_scenario=sigma_scenario,
                     eig_mode=eig_mode,
                     N=ctx.params.N,
+                    mean_eig_sigma=mean_eig_sigma,
                 )
 
             eig_steps.append(eig_t.item())
@@ -387,6 +421,7 @@ def evaluate_method(ctx, name, select_beam, *, eig_mode, nmc=False):
                 sigma_scenario=sigma_scenario,
                 eig_mode=eig_mode,
                 N=N_RECOMPUTE,
+                mean_eig_sigma=mean_eig_sigma,
             )
             eig_sum_recomputed += eig_recomputed.item()
 
@@ -409,6 +444,7 @@ def evaluate_method(ctx, name, select_beam, *, eig_mode, nmc=False):
                 s=ctx.s,
                 snr_db=SNR_DB,
                 mode=POSTERIOR_MODE,
+                sigma=sigma_scenario,
             )
 
             eta_history = torch.cat(
@@ -510,7 +546,7 @@ def sample_quantized_candidates(
 # ============================================================
 
 
-def eig_nmc(ctx, eig_mode, candidate_cfg):
+def eig_nmc(ctx, eig_mode, candidate_cfg, mean_eig_sigma="rho_mean"):
     beam_generator = torch.Generator(
         device=ctx.device
     ).manual_seed(SEED + 1000)
@@ -558,10 +594,7 @@ def eig_nmc(ctx, eig_mode, candidate_cfg):
     print(f"EIG mode: {eig_mode}")
 
     if eig_mode == "mean":
-        print(
-            "rho_mean plug-in sous sigma_snr : "
-            "sigma est aussi évalué à rho_mean (pas à rho_true)."
-        )
+        print(f"Sigma EIG : {MEAN_EIG_SIGMA_LABELS[mean_eig_sigma]}")
 
     def select_beam(
         posterior,
@@ -592,7 +625,9 @@ def eig_nmc(ctx, eig_mode, candidate_cfg):
             )
 
         if eig_mode == "mean":
-            sigma_eig = sigma_for_mean_eig(ctx, posterior)
+            sigma_eig = sigma_for_mean_eig(
+                ctx, posterior, sigma_scenario, mean_eig_sigma
+            )
         else:
             # Ignoré par le mode marginal, qui recalcule sigma(rho_j).
             sigma_eig = sigma_scenario
@@ -617,6 +652,7 @@ def eig_nmc(ctx, eig_mode, candidate_cfg):
         "baseline",
         select_beam,
         eig_mode=eig_mode,
+        mean_eig_sigma=mean_eig_sigma,
         nmc=True,
     )
 
@@ -679,7 +715,7 @@ def load_policy(ctx):
     return policy
 
 
-def dad(ctx, policy, eig_mode):
+def dad(ctx, policy, eig_mode, mean_eig_sigma="rho_mean"):
     # Chauffe aussi l'encodeur avec un historique non vide.
     with torch.inference_mode():
         for t in (0, max(1, ctx.params.T - 1)):
@@ -709,6 +745,7 @@ def dad(ctx, policy, eig_mode):
         "dad",
         select_beam,
         eig_mode=eig_mode,
+        mean_eig_sigma=mean_eig_sigma,
     )
 
 
@@ -726,7 +763,7 @@ def random_continuous_beam(K, device):
     return eta
 
 
-def random(ctx, eig_mode):
+def random(ctx, eig_mode, mean_eig_sigma="rho_mean"):
     def select_beam(
         posterior,
         p_theta,
@@ -745,6 +782,7 @@ def random(ctx, eig_mode):
         "random",
         select_beam,
         eig_mode=eig_mode,
+        mean_eig_sigma=mean_eig_sigma,
     )
 
 
@@ -753,11 +791,13 @@ def random(ctx, eig_mode):
 # ============================================================
 
 
-def print_results(results, n_diagnostic, eig_mode):
+def print_results(results, n_diagnostic, eig_mode, mean_eig_sigma="rho_mean"):
     for name, values in results.items():
         theta = values["theta_errors"]
 
         print(f"\n{'=' * 60}\n{NAMES[name]}\n{'=' * 60}")
+        if eig_mode == "mean":
+            print(f"Sigma EIG : {MEAN_EIG_SIGMA_LABELS[mean_eig_sigma]}")
         print(f"Theta MAE       : {theta.mean().item():.4f} deg")
         print(f"Theta median    : {theta.median().item():.4f} deg")
         print(
@@ -812,6 +852,7 @@ def save_results(
     results,
     eig_mode,
     candidate_cfg,
+    mean_eig_sigma="rho_mean",
 ):
     saved = {
         "snr_db": SNR_DB,
@@ -819,6 +860,7 @@ def save_results(
         "L_eval": L_EVAL,
         "posterior_mode": POSTERIOR_MODE,
         "eig_mode": eig_mode,
+        "mean_eig_sigma": mean_eig_sigma if eig_mode == "mean" else None,
         "methods": list(results),
         "theta_true": ctx.theta_true.cpu(),
         "rho_true": ctx.rho_true.cpu(),
@@ -851,15 +893,20 @@ def main():
 
     # Par défaut, les diagnostics DAD/random restent en EIG marginal.
     eig_mode = "marginal"
+    mean_eig_sigma = None
     candidate_cfg = None
 
     if "1" in choices:
         eig_mode = choose_eig_mode()
+        if eig_mode == "mean":
+            mean_eig_sigma = choose_mean_eig_sigma()
         candidate_cfg = choose_eig_candidates(ctx.params)
 
     print("\nRésumé configuration :")
     print(f"  posterior       : {POSTERIOR_MODE}")
     print(f"  EIG diagnostic : {eig_mode}")
+    if eig_mode == "mean":
+        print(f"  sigma EIG       : {MEAN_EIG_SIGMA_LABELS[mean_eig_sigma]}")
 
     if candidate_cfg is not None:
         print(f"  recherche EIG  : {candidate_cfg.search}")
@@ -876,6 +923,7 @@ def main():
         results["baseline"] = eig_nmc(
             ctx,
             eig_mode=eig_mode,
+            mean_eig_sigma=mean_eig_sigma,
             candidate_cfg=candidate_cfg,
         )
 
@@ -884,24 +932,28 @@ def main():
             ctx,
             policy,
             eig_mode=eig_mode,
+            mean_eig_sigma=mean_eig_sigma,
         )
 
     if "3" in choices:
         results["random"] = random(
             ctx,
             eig_mode=eig_mode,
+            mean_eig_sigma=mean_eig_sigma,
         )
 
     print_results(
         results,
         n_diagnostic=ctx.params.N,
         eig_mode=eig_mode,
+        mean_eig_sigma=mean_eig_sigma,
     )
 
     save_results(
         ctx,
         results,
         eig_mode=eig_mode,
+        mean_eig_sigma=mean_eig_sigma,
         candidate_cfg=candidate_cfg,
     )
 

@@ -1,0 +1,51 @@
+Méthodes à tester : 1 = EIG / NMC, 2 = DAD (réseau), 3 = Random
+Combinaisons possibles : 1, 2, 3, 1 2, 1 3, 2 3 ou 1 2 3.
+Chaque méthode : erreurs finales, sum EIG et g_L. Seul le cas 1 sélectionne par EIG.
+Ton choix : Device: cuda | Antennes: 8 | T: 5 | Ns: 127
+Posterior mode: sigma_fixed
+
+Estimateur EIG pour la méthode NMC :
+  1 = rho marginalisé : p(r|theta,h) = sum_rho p(rho|theta,h)p(r|theta,rho)
+  2 = rho_mean plug-in : rho -> E[rho|h]
+Mode EIG : 
+Recherche des beams pour EIG / NMC :
+  1 = codebook exhaustif quantifié sur 2 bits
+  2 = sous-ensemble aléatoire de beams
+Sélection des beams : 
+Espace des beams échantillonnés :
+  1 = quantifié sur 2 bits
+  2 = continu, phases uniformes dans [0, 2pi)
+Type de beams aléatoires : Nombre de beams aléatoires quantifiés (1 à 16383) : 
+Résumé configuration :
+  posterior       : sigma_fixed
+  EIG diagnostic : marginal
+  recherche EIG  : random
+  espace beams   : quantized
+  nb beams        : 400
+Baseline beams: 400 aléatoires quantized | NMC N: 300
+EIG mode: marginal
+
+============================================================
+EIG / NMC MARGINAL RANDOM QUANTIFIE (400)
+============================================================
+Réalisation   1 | theta err =  46.445 deg | rho err = 0.7638 | sum EIG = 1.311 | g_L = 1.795
+Réalisation   2 | theta err =  92.793 deg | rho err = 0.0255 | sum EIG = nan | g_L = -0.079
+Réalisation   3 | theta err =  14.190 deg | rho err = 0.2820 | sum EIG = 1.904 | g_L = 0.886
+Réalisation   4 | theta err =   0.163 deg | rho err = 0.0307 | sum EIG = 2.311 | g_L = 3.245
+Réalisation   5 | theta err =   2.752 deg | rho err = 0.0101 | sum EIG = 1.850 | g_L = 0.913
+Réalisation   6 | theta err =   0.103 deg | rho err = 0.0228 | sum EIG = 1.967 | g_L = 3.878
+Réalisation   7 | theta err =   0.350 deg | rho err = 0.0335 | sum EIG = nan | g_L = 3.361
+Réalisation   8 | theta err =   1.282 deg | rho err = 0.0000 | sum EIG = 1.754 | g_L = 3.171
+Réalisation   9 | theta err =   0.732 deg | rho err = 0.0994 | sum EIG = 1.835 | g_L = 3.339
+Réalisation  10 | theta err =   3.405 deg | rho err = 0.0918 | sum EIG = 1.461 | g_L = 1.444
+Réalisation  11 | theta err =   0.010 deg | rho err = 0.0342 | sum EIG = 2.239 | g_L = 3.829
+Réalisation  12 | theta err =   1.259 deg | rho err = 0.0223 | sum EIG = 2.298 | g_L = 3.095
+Réalisation  13 | theta err =   2.410 deg | rho err = 0.0935 | sum EIG = 2.096 | g_L = 2.182
+Réalisation  14 | theta err =  25.897 deg | rho err = 0.1070 | sum EIG = 3.026 | g_L = 1.056
+Réalisation  15 | theta err =   0.547 deg | rho err = 0.0210 | sum EIG = 1.435 | g_L = 3.216
+Réalisation  16 | theta err =   0.887 deg | rho err = 0.0027 | sum EIG = 3.198 | g_L = 2.805
+Réalisation  17 | theta err =   1.098 deg | rho err = 0.0881 | sum EIG = 2.257 | g_L = 3.229
+Réalisation  18 | theta err =   1.506 deg | rho err = 0.0529 | sum EIG = 4.029 | g_L = 3.102
+Réalisation  19 | theta err =   1.340 deg | rho err = 0.0468 | sum EIG = 1.433 | g_L = 2.771
+Réalisation  20 | theta err =  68.182 deg | rho err = 0.0546 | sum EIG = 1.501 | g_L = 1.064
+Réalisation  21 | theta err =   1.116 deg | rho err = 0.0622 | sum EIG = 1.641 | g_L = 3.827

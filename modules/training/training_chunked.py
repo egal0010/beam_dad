@@ -370,7 +370,7 @@ def train_dad_chunked(
                     "candidate_chunk_size": candidate_chunk_size,
                     "use_checkpoint": use_checkpoint,
                 },
-                f"checkpoints/dad_T{n_experiments}_step_{step}.pt",
+                f"checkpoints_nx8_T3_summary_stats/dad_T{n_experiments}_step_{step}.pt",
             )
 
         # ====================================================
@@ -433,7 +433,7 @@ def train_dad_chunked(
                     "candidate_chunk_size": candidate_chunk_size,
                     "use_checkpoint": use_checkpoint,
                 },
-                f"checkpoints/dad_T{n_experiments}_best.pt",
+                f"checkpoints_nx8_T3_summary_stats/dad_T{n_experiments}_best.pt",
             )
 
         if (

@@ -1,0 +1,1104 @@
+with N_nmc=50
+
+========== SNR = 0 dB ==========
+
+ans =
+
+    74
+
+
+ans =
+
+   73.8977
+
+Realisation 1 | Error = 0.102 deg | rho_true = 0.384 | rho_hat = 0.399
+
+ans =
+
+    97
+
+
+ans =
+
+   99.0173
+
+Realisation 2 | Error = 2.017 deg | rho_true = 0.305 | rho_hat = 0.263
+
+ans =
+
+    62
+
+
+ans =
+
+   60.0176
+
+Realisation 3 | Error = 1.982 deg | rho_true = 0.960 | rho_hat = 0.283
+
+ans =
+
+   136
+
+
+ans =
+
+  135.5754
+
+Realisation 4 | Error = 0.425 deg | rho_true = 0.889 | rho_hat = 1.000
+
+ans =
+
+    36
+
+
+ans =
+
+   35.2292
+
+Realisation 5 | Error = 0.771 deg | rho_true = 0.451 | rho_hat = 0.438
+
+ans =
+
+   101
+
+
+ans =
+
+  101.8113
+
+Realisation 6 | Error = 0.811 deg | rho_true = 0.662 | rho_hat = 0.302
+
+ans =
+
+    65
+
+
+ans =
+
+   59.2519
+
+Realisation 7 | Error = 5.748 deg | rho_true = 0.112 | rho_hat = 0.108
+
+ans =
+
+   133
+
+
+ans =
+
+  132.9360
+
+Realisation 8 | Error = 0.064 deg | rho_true = 0.449 | rho_hat = 0.457
+
+ans =
+
+   124
+
+
+ans =
+
+  123.2107
+
+Realisation 9 | Error = 0.789 deg | rho_true = 0.471 | rho_hat = 0.050
+
+ans =
+
+   122
+
+
+ans =
+
+   75.9742
+
+Realisation 10 | Error = 46.026 deg | rho_true = 0.167 | rho_hat = 0.205
+
+ans =
+
+   102
+
+
+ans =
+
+   97.3633
+
+Realisation 11 | Error = 4.637 deg | rho_true = 0.427 | rho_hat = 0.186
+
+ans =
+
+    40
+
+
+ans =
+
+   40.5455
+
+Realisation 12 | Error = 0.545 deg | rho_true = 0.596 | rho_hat = 0.632
+
+ans =
+
+   101
+
+
+ans =
+
+  100.7836
+
+Realisation 13 | Error = 0.216 deg | rho_true = 0.587 | rho_hat = 0.632
+
+ans =
+
+   147
+
+
+ans =
+
+   75.6412
+
+Realisation 14 | Error = 71.359 deg | rho_true = 0.338 | rho_hat = 0.748
+
+ans =
+
+    42
+
+
+ans =
+
+   36.6781
+
+Realisation 15 | Error = 5.322 deg | rho_true = 0.278 | rho_hat = 0.186
+
+ans =
+
+   103
+
+
+ans =
+
+   79.2702
+
+Realisation 16 | Error = 23.730 deg | rho_true = 0.459 | rho_hat = 0.050
+
+ans =
+
+    91
+
+
+ans =
+
+   91.0097
+
+Realisation 17 | Error = 0.010 deg | rho_true = 0.559 | rho_hat = 0.612
+
+ans =
+
+   150
+
+
+ans =
+
+   43.2884
+
+Realisation 18 | Error = 106.712 deg | rho_true = 0.605 | rho_hat = 0.341
+
+ans =
+
+    46
+
+
+ans =
+
+   49.1333
+
+Realisation 19 | Error = 3.133 deg | rho_true = 0.645 | rho_hat = 0.573
+
+ans =
+
+   132
+
+
+ans =
+
+  130.6726
+
+Realisation 20 | Error = 1.327 deg | rho_true = 0.730 | rho_hat = 1.000
+
+ans =
+
+  123.0000
+
+
+ans =
+
+  124.4278
+
+Realisation 21 | Error = 1.428 deg | rho_true = 0.524 | rho_hat = 0.612
+
+ans =
+
+    56
+
+
+ans =
+
+   77.0853
+
+Realisation 22 | Error = 21.085 deg | rho_true = 0.313 | rho_hat = 0.283
+
+ans =
+
+   129
+
+
+ans =
+
+  128.4480
+
+Realisation 23 | Error = 0.552 deg | rho_true = 0.395 | rho_hat = 0.438
+
+ans =
+
+    43
+
+
+ans =
+
+  127.6272
+
+Realisation 24 | Error = 84.627 deg | rho_true = 0.341 | rho_hat = 0.244
+
+ans =
+
+  118.0000
+
+
+ans =
+
+  117.5815
+
+Realisation 25 | Error = 0.419 deg | rho_true = 0.536 | rho_hat = 0.554
+
+ans =
+
+    95
+
+
+ans =
+
+   94.9731
+
+Realisation 26 | Error = 0.027 deg | rho_true = 0.240 | rho_hat = 0.244
+
+ans =
+
+    62
+
+
+ans =
+
+   33.1842
+
+Realisation 27 | Error = 28.816 deg | rho_true = 0.132 | rho_hat = 0.224
+
+ans =
+
+    87
+
+
+ans =
+
+   81.0607
+
+Realisation 28 | Error = 5.939 deg | rho_true = 0.798 | rho_hat = 0.050
+
+ans =
+
+    32
+
+
+ans =
+
+  124.1854
+
+Realisation 29 | Error = 92.185 deg | rho_true = 0.520 | rho_hat = 0.341
+
+ans =
+
+    87
+
+
+ans =
+
+   90.7677
+
+Realisation 30 | Error = 3.768 deg | rho_true = 0.581 | rho_hat = 0.573
+
+ans =
+
+   106
+
+
+ans =
+
+  103.8452
+
+Realisation 31 | Error = 2.155 deg | rho_true = 0.424 | rho_hat = 0.050
+
+ans =
+
+   104
+
+
+ans =
+
+   85.6632
+
+Realisation 32 | Error = 18.337 deg | rho_true = 0.986 | rho_hat = 0.554
+
+ans =
+
+   103
+
+
+ans =
+
+  103.1831
+
+Realisation 33 | Error = 0.183 deg | rho_true = 0.719 | rho_hat = 0.845
+
+ans =
+
+   103
+
+
+ans =
+
+  112.5487
+
+Realisation 34 | Error = 9.549 deg | rho_true = 0.308 | rho_hat = 0.050
+
+ans =
+
+    64
+
+
+ans =
+
+   59.7308
+
+Realisation 35 | Error = 4.269 deg | rho_true = 0.054 | rho_hat = 0.050
+
+ans =
+
+   109
+
+
+ans =
+
+   93.9465
+
+Realisation 36 | Error = 15.054 deg | rho_true = 0.675 | rho_hat = 0.302
+
+ans =
+
+   102
+
+
+ans =
+
+   83.0367
+
+Realisation 37 | Error = 18.963 deg | rho_true = 0.506 | rho_hat = 0.496
+
+ans =
+
+   101
+
+
+ans =
+
+  102.5612
+
+Realisation 38 | Error = 1.561 deg | rho_true = 0.895 | rho_hat = 0.050
+
+ans =
+
+   138
+
+
+ans =
+
+  147.3643
+
+Realisation 39 | Error = 9.364 deg | rho_true = 0.134 | rho_hat = 0.147
+
+ans =
+
+   58.0000
+
+
+ans =
+
+   54.5166
+
+Realisation 40 | Error = 3.483 deg | rho_true = 0.953 | rho_hat = 0.845
+
+ans =
+
+   111
+
+
+ans =
+
+  114.6561
+
+Realisation 41 | Error = 3.656 deg | rho_true = 0.135 | rho_hat = 0.147
+
+ans =
+
+   124
+
+
+ans =
+
+   79.4969
+
+Realisation 42 | Error = 44.503 deg | rho_true = 0.587 | rho_hat = 0.399
+
+ans =
+
+    62
+
+
+ans =
+
+  119.2427
+
+Realisation 43 | Error = 57.243 deg | rho_true = 0.342 | rho_hat = 0.224
+
+ans =
+
+   107
+
+
+ans =
+
+  110.3359
+
+Realisation 44 | Error = 3.336 deg | rho_true = 0.155 | rho_hat = 0.166
+
+ans =
+
+    51
+
+
+ans =
+
+   51.5297
+
+Realisation 45 | Error = 0.530 deg | rho_true = 0.056 | rho_hat = 0.050
+
+ans =
+
+   100
+
+
+ans =
+
+   87.9816
+
+Realisation 46 | Error = 12.018 deg | rho_true = 0.132 | rho_hat = 0.108
+
+ans =
+
+   133
+
+
+ans =
+
+  132.9772
+
+Realisation 47 | Error = 0.023 deg | rho_true = 0.760 | rho_hat = 0.670
+
+ans =
+
+    94
+
+
+ans =
+
+   86.2683
+
+Realisation 48 | Error = 7.732 deg | rho_true = 0.097 | rho_hat = 0.069
+
+ans =
+
+    83
+
+
+ans =
+
+   80.0974
+
+Realisation 49 | Error = 2.903 deg | rho_true = 0.227 | rho_hat = 0.166
+
+ans =
+
+    43
+
+
+ans =
+
+  110.1187
+
+Realisation 50 | Error = 67.119 deg | rho_true = 0.369 | rho_hat = 0.186
+
+ans =
+
+    41
+
+
+ans =
+
+  103.2328
+
+Realisation 51 | Error = 62.233 deg | rho_true = 0.193 | rho_hat = 0.108
+
+ans =
+
+   150
+
+
+ans =
+
+  149.3677
+
+Realisation 52 | Error = 0.632 deg | rho_true = 0.087 | rho_hat = 0.050
+
+ans =
+
+    66
+
+
+ans =
+
+   74.2661
+
+Realisation 53 | Error = 8.266 deg | rho_true = 0.338 | rho_hat = 0.283
+
+ans =
+
+   106
+
+
+ans =
+
+  132.7228
+
+Realisation 54 | Error = 26.723 deg | rho_true = 0.154 | rho_hat = 0.128
+
+ans =
+
+  125.0000
+
+
+ans =
+
+  125.5718
+
+Realisation 55 | Error = 0.572 deg | rho_true = 0.930 | rho_hat = 1.000
+
+ans =
+
+   101
+
+
+ans =
+
+   52.2842
+
+Realisation 56 | Error = 48.716 deg | rho_true = 0.799 | rho_hat = 0.418
+
+ans =
+
+    75
+
+
+ans =
+
+   73.0092
+
+Realisation 57 | Error = 1.991 deg | rho_true = 0.136 | rho_hat = 0.128
+
+ans =
+
+    43
+
+
+ans =
+
+   42.0100
+
+Realisation 58 | Error = 0.990 deg | rho_true = 0.877 | rho_hat = 1.000
+
+ans =
+
+   141
+
+
+ans =
+
+  142.6264
+
+Realisation 59 | Error = 1.626 deg | rho_true = 0.550 | rho_hat = 0.748
+
+ans =
+
+   131
+
+
+ans =
+
+   38.5515
+
+Realisation 60 | Error = 92.449 deg | rho_true = 0.416 | rho_hat = 0.341
+
+ans =
+
+    74
+
+
+ans =
+
+   73.6205
+
+Realisation 61 | Error = 0.379 deg | rho_true = 0.520 | rho_hat = 0.380
+
+ans =
+
+    81
+
+
+ans =
+
+  127.4521
+
+Realisation 62 | Error = 46.452 deg | rho_true = 0.279 | rho_hat = 0.341
+
+ans =
+
+   102
+
+
+ans =
+
+   39.5010
+
+Realisation 63 | Error = 62.499 deg | rho_true = 0.599 | rho_hat = 0.321
+
+ans =
+
+    65
+
+
+ans =
+
+   64.2316
+
+Realisation 64 | Error = 0.768 deg | rho_true = 0.858 | rho_hat = 0.050
+
+ans =
+
+   111
+
+
+ans =
+
+  115.3675
+
+Realisation 65 | Error = 4.367 deg | rho_true = 0.157 | rho_hat = 0.205
+
+ans =
+
+    91
+
+
+ans =
+
+  102.5987
+
+Realisation 66 | Error = 11.599 deg | rho_true = 0.818 | rho_hat = 0.535
+
+ans =
+
+   150
+
+
+ans =
+
+  148.4861
+
+Realisation 67 | Error = 1.514 deg | rho_true = 0.742 | rho_hat = 0.690
+
+ans =
+
+  116.0000
+
+
+ans =
+
+  117.5393
+
+Realisation 68 | Error = 1.539 deg | rho_true = 0.199 | rho_hat = 0.147
+
+ans =
+
+   110
+
+
+ans =
+
+  116.0773
+
+Realisation 69 | Error = 6.077 deg | rho_true = 0.673 | rho_hat = 0.729
+
+ans =
+
+    79
+
+
+ans =
+
+  110.2070
+
+Realisation 70 | Error = 31.207 deg | rho_true = 0.104 | rho_hat = 0.069
+
+ans =
+
+    99
+
+
+ans =
+
+  101.5471
+
+Realisation 71 | Error = 2.547 deg | rho_true = 0.343 | rho_hat = 0.050
+
+ans =
+
+   102
+
+
+ans =
+
+   56.7412
+
+Realisation 72 | Error = 45.259 deg | rho_true = 0.386 | rho_hat = 0.050
+
+ans =
+
+    47
+
+
+ans =
+
+   51.8359
+
+Realisation 73 | Error = 4.836 deg | rho_true = 0.079 | rho_hat = 0.069
+
+ans =
+
+  116.0000
+
+
+ans =
+
+   35.5999
+
+Realisation 74 | Error = 80.400 deg | rho_true = 0.425 | rho_hat = 0.341
+
+ans =
+
+    98
+
+
+ans =
+
+  104.3986
+
+Realisation 75 | Error = 6.399 deg | rho_true = 0.190 | rho_hat = 0.205
+
+ans =
+
+    87
+
+
+ans =
+
+   88.9297
+
+Realisation 76 | Error = 1.930 deg | rho_true = 0.202 | rho_hat = 0.205
+
+ans =
+
+    70
+
+
+ans =
+
+  102.9377
+
+Realisation 77 | Error = 32.938 deg | rho_true = 0.911 | rho_hat = 0.050
+
+ans =
+
+   138
+
+
+ans =
+
+  137.2501
+
+Realisation 78 | Error = 0.750 deg | rho_true = 0.760 | rho_hat = 0.729
+
+ans =
+
+   101
+
+
+ans =
+
+  134.5973
+
+Realisation 79 | Error = 33.597 deg | rho_true = 0.537 | rho_hat = 0.690
+
+ans =
+
+   140
+
+
+ans =
+
+  140.9877
+
+Realisation 80 | Error = 0.988 deg | rho_true = 0.953 | rho_hat = 0.864
+
+ans =
+
+    82
+
+
+ans =
+
+   78.1688
+
+Realisation 81 | Error = 3.831 deg | rho_true = 0.737 | rho_hat = 1.000
+
+ans =
+
+    73
+
+
+ans =
+
+   41.7703
+
+Realisation 82 | Error = 31.230 deg | rho_true = 0.206 | rho_hat = 0.069
+
+ans =
+
+  116.0000
+
+
+ans =
+
+  115.2357
+
+Realisation 83 | Error = 0.764 deg | rho_true = 0.226 | rho_hat = 0.205
+
+ans =
+
+    71
+
+
+ans =
+
+  141.9933
+
+Realisation 84 | Error = 70.993 deg | rho_true = 0.243 | rho_hat = 0.166
+
+ans =
+
+   48.0000
+
+
+ans =
+
+   51.2916
+
+Realisation 85 | Error = 3.292 deg | rho_true = 0.089 | rho_hat = 0.089
+
+ans =
+
+   131
+
+
+ans =
+
+  100.4864
+
+Realisation 86 | Error = 30.514 deg | rho_true = 0.937 | rho_hat = 0.535
+
+ans =
+
+   149
+
+
+ans =
+
+  144.3671
+
+Realisation 87 | Error = 4.633 deg | rho_true = 0.139 | rho_hat = 0.166
+
+ans =
+
+    38
+
+
+ans =
+
+  106.4164
+
+Realisation 88 | Error = 68.416 deg | rho_true = 0.964 | rho_hat = 0.360
+
+ans =
+
+   132
+
+
+ans =
+
+  135.4979
+
+Realisation 89 | Error = 3.498 deg | rho_true = 0.051 | rho_hat = 0.050
+
+ans =
+
+    82
+
+
+ans =
+
+   32.8237
+
+Realisation 90 | Error = 49.176 deg | rho_true = 0.626 | rho_hat = 0.477
+
+ans =
+
+    39
+
+
+ans =
+
+   40.0192
+
+Realisation 91 | Error = 1.019 deg | rho_true = 0.967 | rho_hat = 1.000
+
+ans =
+
+   122
+
+
+ans =
+
+  118.8209
+
+Realisation 92 | Error = 3.179 deg | rho_true = 0.705 | rho_hat = 0.845
+
+ans =
+
+   101
+
+
+ans =
+
+  128.4890
+
+Realisation 93 | Error = 27.489 deg | rho_true = 0.944 | rho_hat = 0.380
+
+ans =
+
+    64
+
+
+ans =
+
+   63.3889
+
+Realisation 94 | Error = 0.611 deg | rho_true = 0.522 | rho_hat = 0.573
+
+ans =
+
+    51
+
+
+ans =
+
+   49.8403
+
+Realisation 95 | Error = 1.160 deg | rho_true = 0.624 | rho_hat = 0.554
+
+ans =
+
+    84
+
+
+ans =
+
+   42.4715
+
+Realisation 96 | Error = 41.529 deg | rho_true = 0.763 | rho_hat = 0.632
+
+ans =
+
+   135
+
+
+ans =
+
+  147.1681
+
+Realisation 97 | Error = 12.168 deg | rho_true = 0.516 | rho_hat = 0.632
+
+ans =
+
+    31
+
+
+ans =
+
+   34.6551
+
+Realisation 98 | Error = 3.655 deg | rho_true = 0.078 | rho_hat = 0.089
+
+ans =
+
+   132
+
+
+ans =
+
+  135.9234
+
+Realisation 99 | Error = 3.923 deg | rho_true = 0.112 | rho_hat = 0.128
+
+ans =
+
+   145
+
+
+ans =
+
+  144.9080
+
+Realisation 100 | Error = 0.092 deg | rho_true = 0.894 | rho_hat = 0.826
+Elapsed time is 1557.362912 seconds.

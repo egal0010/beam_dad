@@ -1,89 +1,31 @@
 import torch
 import torch.nn as nn
 
-from modules.dad.encoder_amp import AmplitudeDeepSet
 
 class Encoder(nn.Module):
 
     def __init__(
         self,
-        observation_dim=127,
         design_dim=4,
-        hidden_dim=128,
-        encoding_dim=32,
-        amp_output_dim=16,
+        observation_dim=127,
+        hidden_dim=256,
+        encoding_dim=64,
     ):
         super().__init__()
 
-        # ----------------------------------------------------
-        # Deep Sets encoder for the 127 amplitudes
-        #
-        # r = [r_1, ..., r_127]
-        #       ->
-        # z_amp in R^amp_output_dim
-        # ----------------------------------------------------
-
-        self.amp = AmplitudeDeepSet(
-            element_hidden_dim=64,
-            element_encoding_dim=32,
-            output_dim=amp_output_dim,
-        )
-
-        # ----------------------------------------------------
-        # Beam representation
-        #
-        # eta_0 = 0 is fixed.
-        #
-        # Keep only K-1 relative phases and represent them
-        # through cos/sin to avoid the 2*pi discontinuity.
-        #
-        # dimension = 2 * (K - 1)
-        # ----------------------------------------------------
-
-        eta_feature_dim = 2 * (design_dim - 1)
-
-        # ----------------------------------------------------
-        # Complete experiment representation:
-        #
-        # [beam features, amplitude embedding]
-        # ----------------------------------------------------
-
-        input_dim = (
-            eta_feature_dim
-            + amp_output_dim
-        )
+        input_dim = 2 * (design_dim - 1) + 6  # cos/sin des phases + amplitudes
 
         self.net = nn.Sequential(
-
-            nn.Linear(
-                input_dim,
-                hidden_dim,
-            ),
-
+            nn.Linear(input_dim, hidden_dim),
             nn.LeakyReLU(0.01),
-
-            nn.Linear(
-                hidden_dim,
-                encoding_dim,
-            ),
+            nn.Linear(hidden_dim, encoding_dim),
         )
 
+    def forward(self, eta, r):
 
-    def forward(
-        self,
-        eta,
-        r,
-    ):
-
-        # ----------------------------------------------------
-        # Relative phases
-        # ----------------------------------------------------
-
+        # La première phase est toujours 0 :
+        # on ne garde que les K-1 phases relatives
         eta_relative = eta[..., 1:]
-
-        # [..., K-1]
-        #      ->
-        # [..., 2*(K-1)]
 
         eta_features = torch.cat(
             [
@@ -92,34 +34,33 @@ class Encoder(nn.Module):
             ],
             dim=-1,
         )
+        #information redondantes pour les moments d'ordre 2 et 4, mais on les garde pour l'instant
+        mean_r = torch.mean(r, dim=-1, keepdim=True)
+        var_r = torch.var(r, dim=-1, keepdim=True, correction=False)
+        skew_r = torch.mean(torch.pow(r - mean_r, 3), dim=-1, keepdim=True) / (var_r + 1e-8) ** 1.5
+        kurt_r = torch.mean(torch.pow(r - mean_r, 4), dim=-1, keepdim=True) / (var_r + 1e-8) ** 2
+        m2= torch.mean(r**2, dim=-1, keepdim=True)
+        m4= torch.mean(r**4, dim=-1, keepdim=True)
+        nu2_hat= torch.sqrt(torch.clamp(2*m2**2 - m4, min=1e-8, max=1e6))
+        sigma2_hat= torch.clamp(m2 - nu2_hat, min=1e-8, max=1e6)
 
-        # ----------------------------------------------------
-        # Deep Sets amplitude encoding
-        #
-        # [..., 127]
-        #      ->
-        # [..., amp_output_dim]
-        # ----------------------------------------------------
-
-        z_amp = self.amp(r)
-
-        # ----------------------------------------------------
-        # Complete (design, observation) representation
-        # ----------------------------------------------------
-
-        x = torch.cat(
+        r_features = torch.cat(
             [
-                eta_features,
-                z_amp,
+                mean_r,
+                var_r,
+                skew_r,
+                kurt_r,
+                nu2_hat,
+                sigma2_hat,
             ],
             dim=-1,
         )
-
-        # ----------------------------------------------------
-        # Experiment embedding
-        #
-        # This is what will later be summed over the DAD
-        # history.
-        # ----------------------------------------------------
+        x = torch.cat(
+            [
+                eta_features,
+                r_features,
+            ],
+            dim=-1,
+        )
 
         return self.net(x)
