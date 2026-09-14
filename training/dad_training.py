@@ -123,7 +123,7 @@ torch.save(
         "Ns":
             Ns,
     },
-    "dad_nx8_smoke_T3_summary_stats.pt",
+    "fixed_sigma_dad_nx8_smoke_T3_ds.pt",
 )
 
 print("Model saved.")

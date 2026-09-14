@@ -281,7 +281,7 @@ def _to_real_tensor(
 def make_log_likelihood_fn(
     rho_grid,
     s,
-    snr_db,
+    sigma,
     params,
 ):
     """
@@ -295,17 +295,13 @@ def make_log_likelihood_fn(
         s,
     )
 
-    sigma_grid = sigma_from_snr(
-        s=s,
-        snr_db=snr_db,
-        rho_true=rho_grid,
+    sigma = _to_real_tensor(
+        sigma,
+        s,
     )
     # [R]
 
-    sigma2_grid = (
-        sigma_grid**2
-    )[None, None, :, None]
-    # [1, 1, R, 1]
+    sigma2 = sigma**2
 
     def log_likelihood_fn(
         theta,
@@ -352,7 +348,7 @@ def make_log_likelihood_fn(
             amp_vec=amp_vec,
             s=s,
             alpha=alpha,
-            sigma2=sigma2_grid,
+            sigma2=sigma2,
         )
         # [B, C, R]
 
@@ -362,7 +358,7 @@ def make_log_likelihood_fn(
 def make_observation_fn(
     rho,
     s,
-    snr_db,
+    sigma,
     params,
 ):
     """
@@ -374,11 +370,7 @@ def make_observation_fn(
         s,
     )
 
-    sigma = sigma_from_snr(
-        s=s,
-        snr_db=snr_db,
-        rho_true=rho,
-    )
+    sigma = _to_real_tensor(sigma, s)
 
     def observation_fn(
         theta,

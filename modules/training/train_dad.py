@@ -201,7 +201,7 @@ def train_dad(
         observation_fn = make_observation_fn(
             rho=rho_true,
             s=s,
-            snr_db=snr_db,
+            sigma=sigma,
             params=params,
         )
 
@@ -245,7 +245,7 @@ def train_dad(
         log_likelihood_fn = make_log_likelihood_fn(
             rho_grid=rho_grid,
             s=s,
-            snr_db=snr_db,
+            sigma=sigma,
             params=params,
         )
 
