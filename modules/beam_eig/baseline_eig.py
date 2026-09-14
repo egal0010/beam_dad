@@ -203,7 +203,7 @@ def estimate_eig_for_eta_marginal(
     eta,
     a_grid,
     s,
-    snr_db,
+    sigma,
     posterior,
     rho_grid,
     N,
@@ -340,16 +340,10 @@ def estimate_eig_for_eta_marginal(
         * beam_response_samples
     )  # [N]
 
-    sigma_samples = sigma_from_snr(
-        s,
-        snr_db=snr_db,
-        rho_true=rho_samples,
-    )  # [N]
-
     y_samples = simulate_y(
         alpha_samples,
         s,
-        sigma_samples,
+        sigma,
     )
 
     amp_samples = torch.abs(
@@ -414,16 +408,6 @@ def estimate_eig_for_eta_marginal(
         #
         # result           [N,L,Rc]
 
-        sigma_chunk = sigma_from_snr(
-            s,
-            snr_db=snr_db,
-            rho_true=rho_chunk,
-        )  # [Rc]
-
-        sigma2_chunk = (
-            sigma_chunk**2
-        )[None, None, :, None]  # [1,1,Rc,1]
-
         log_like_chunk = (
             log_amplitude_vector_likelihood(
                 amp_samples[
@@ -433,7 +417,7 @@ def estimate_eig_for_eta_marginal(
                 alpha_chunk[
                     None, :, :
                 ],
-                sigma2_chunk,
+                sigma**2,
             )
         )
 
@@ -591,7 +575,7 @@ def choose_beam(
                     eta=eta_d,
                     a_grid=a_grid,
                     s=s,
-                    snr_db=snr_db,
+                    sigma=sigma,
                     posterior=posterior,
                     rho_grid=rho_grid,
                     N=N,

@@ -10,6 +10,8 @@ from modules.dad.contrastive import (
     make_observation_fn,
 )
 
+from modules.beam_eig.simulator import sigma_from_snr
+
 
 os.makedirs(
     "checkpoints",
@@ -176,12 +178,12 @@ def train_dad_chunked(
     # ONCE rather than once per optimizer step.
     # ========================================================
 
-    log_likelihood_fn = make_log_likelihood_fn(
-        rho_grid=rho_grid,
-        s=s,
-        snr_db=snr_db,
-        params=params,
-    )
+    #log_likelihood_fn = make_log_likelihood_fn(
+    #    rho_grid=rho_grid,
+    #    s=s,
+    #    snr_db=snr_db,
+    #    params=params,
+    #)
 
     # ========================================================
     # Optimizer
@@ -239,6 +241,12 @@ def train_dad_chunked(
             dtype,
         )
 
+        sigma_true = sigma_from_snr(
+            s=s,
+            snr_db=snr_db,
+            rho_true=rho_true
+        )
+
         # ----------------------------------------------------
         # 2. Generate trajectory
         # ----------------------------------------------------
@@ -246,7 +254,7 @@ def train_dad_chunked(
         observation_fn = make_observation_fn(
             rho=rho_true,
             s=s,
-            snr_db=snr_db,
+            sigma=sigma_true,
             params=params,
         )
 
@@ -255,6 +263,13 @@ def train_dad_chunked(
             theta=theta_true,
             n_steps=n_experiments,
             observation_fn=observation_fn,
+        )
+
+        log_likelihood_fn = make_log_likelihood_fn(
+            rho_grid=rho_grid,
+            s=s,
+            sigma=sigma_true,
+            params=params,
         )
 
         if profile_first_step and step == 1:
@@ -370,7 +385,7 @@ def train_dad_chunked(
                     "candidate_chunk_size": candidate_chunk_size,
                     "use_checkpoint": use_checkpoint,
                 },
-                f"checkpoints_nx8_T3_summary_stats/dad_T{n_experiments}_step_{step}.pt",
+                f"checkpoints_fixed_sigma_nx8_T3_ds/dad_T{n_experiments}_step_{step}.pt",
             )
 
         # ====================================================
@@ -433,7 +448,7 @@ def train_dad_chunked(
                     "candidate_chunk_size": candidate_chunk_size,
                     "use_checkpoint": use_checkpoint,
                 },
-                f"checkpoints_nx8_T3_summary_stats/dad_T{n_experiments}_best.pt",
+                f"checkpoints_fixed_sigma_nx8_T3_ds/dad_T{n_experiments}_best.pt",
             )
 
         if (

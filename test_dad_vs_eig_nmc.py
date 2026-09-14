@@ -44,7 +44,7 @@ N_RECOMPUTE = 5000  # Recalcul EIG du beam choisi pour toutes les méthodes.
 SEED = 42
 
 CHECKPOINT_PATH = Path(
-    "training/checkpoints_nx8_T5_ds/dad_T5_step_20000.pt"
+    "model_checkpoints/checkpoints_nx8/checkpoints_T3_ds/dad_T3_step_6000.pt"
 )
 OUTPUT_PATH = Path("comparison_nmc_vs_dad.pt")
 
@@ -235,12 +235,6 @@ def make_test_set():
         noise_real=noise_real,
         noise_imag=noise_imag,
         theta_contrast=theta_contrast,
-        log_likelihood_fn=make_log_likelihood_fn(
-            rho_grid=rho_grid,
-            s=s,
-            snr_db=SNR_DB,
-            params=params,
-        ),
         log_p_rho_prior=torch.full(
             (rho_grid.numel(),),
             -math.log(rho_grid.numel()),
@@ -249,7 +243,15 @@ def make_test_set():
     )
 
 
-def evaluate_g_L(ctx, realization, eta_history, r_history):
+def evaluate_g_L(ctx, realization, eta_history, r_history,sigma_scenario):
+
+    log_likelihood_fn = make_log_likelihood_fn(
+        rho_grid=ctx.rho_grid,
+        s=ctx.s,
+        sigma=sigma_scenario,
+        params=ctx.params,
+    )
+
     theta_candidates = torch.cat(
         [
             ctx.theta_true[realization].reshape(1, 1),
@@ -262,7 +264,7 @@ def evaluate_g_L(ctx, realization, eta_history, r_history):
         theta_candidates=theta_candidates,
         eta_history=eta_history,
         r_history=r_history,
-        log_likelihood_fn=ctx.log_likelihood_fn,
+        log_likelihood_fn=log_likelihood_fn,
         log_p_rho_prior=ctx.log_p_rho_prior,
     )
 
@@ -475,6 +477,7 @@ def evaluate_method(
             r,
             eta_history,
             r_history,
+            sigma_scenario
         )
 
         results["theta_errors"].append(theta_error)
