@@ -220,7 +220,7 @@ def contrastive_bound_from_log_prob(log_prob):
 
     g_L = log_prob_true - log_evidence
 
-    return g_L.mean(), g_L
+    return g_L.mean(),g_L.var(), g_L
 
 
 def contrastive_bound(

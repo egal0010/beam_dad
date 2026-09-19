@@ -1,5 +1,5 @@
 import math
-import os
+from pathlib import Path
 
 import torch
 
@@ -11,12 +11,7 @@ from modules.dad.contrastive import (
 )
 
 from modules.beam_eig.simulator import sigma_from_snr
-
-
-os.makedirs(
-    "checkpoints",
-    exist_ok=True,
-)
+from modules.run_config import CHECKPOINT_STEPS, default_checkpoint_dir
 
 
 def sample_theta_prior(
@@ -100,15 +95,17 @@ def train_dad_chunked(
     num_steps,
     batch_size,
     L,
-    n_experiments,
+    n_experiments=None,
     snr_db,
     rho_grid_size=50,
     learning_rate=1e-3,
+    alpha=0.5,
     grad_clip=1.0,
     print_every=10,
     candidate_chunk_size=32,
     use_checkpoint=True,
     profile_first_step=False,
+    checkpoint_dir=None,
 ):
     """
     Train DAD policy by maximizing the contrastive bound.
@@ -120,6 +117,16 @@ def train_dad_chunked(
 
     L : int
         Number of contrastive theta samples PER trajectory.
+
+    n_experiments : int or None
+        Number of beams per trajectory. Defaults to params.T; any explicit
+        value must agree with params.T.
+
+    alpha : float
+        Weight of the variance penalty in mean(g_L) - alpha * var(g_L).
+
+    checkpoint_dir : path-like or None
+        Directory for checkpoints. Defaults to the run's array size and T.
 
     candidate_chunk_size : int or None
         Number of theta candidates evaluated simultaneously inside the Rice
@@ -136,6 +143,20 @@ def train_dad_chunked(
         If True, print CUDA memory after rollout, after contrastive bound,
         and after backward for the first training step.
     """
+
+    if n_experiments is None:
+        n_experiments = params.T
+    elif n_experiments != params.T:
+        raise ValueError(
+            f"n_experiments={n_experiments} must match params.T={params.T}"
+        )
+
+    checkpoint_dir = (
+        default_checkpoint_dir(params)
+        if checkpoint_dir is None
+        else Path(checkpoint_dir)
+    )
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
     device = next(
         policy.parameters()
@@ -301,7 +322,7 @@ def train_dad_chunked(
         # 4. Contrastive bound
         # ----------------------------------------------------
 
-        bound, g_L = contrastive_bound(
+        bound, var_bound, g_L = contrastive_bound(
             theta_candidates=theta_candidates,
             eta_history=eta_history,
             r_history=r_history,
@@ -315,10 +336,10 @@ def train_dad_chunked(
             _print_cuda_memory("after contrastive bound")
 
         # ----------------------------------------------------
-        # 5. Maximize bound
+        # 5. Maximize mean(g_L) - alpha * var(g_L)
         # ----------------------------------------------------
 
-        loss = -bound
+        loss = -(bound - alpha * var_bound)
 
         if not torch.isfinite(loss):
             raise RuntimeError(
@@ -356,6 +377,7 @@ def train_dad_chunked(
         if step % 1000 == 0:
             scheduler.step()
 
+        if step in CHECKPOINT_STEPS:
             torch.save(
                 {
                     "model_state_dict":
@@ -370,22 +392,27 @@ def train_dad_chunked(
                     "Nx": params.Nx,
                     "Ny": params.Ny,
                     "Ns": s.numel(),
+                    "T": params.T,
+                    "snr_db": snr_db,
+                    "sigma_mode": "sigma_fixed",
+                    "trainer": "chunked",
 
                     "hidden_dim": policy.hidden_dim,
                     "encoding_dim": policy.encoding_dim,
 
-                    "encoder_type": "mean_var",
+                    "encoder_type": "deepsets",
 
                     "step": step,
                     "history": history,
                     "ema_bound": ema_bound,
 
+                    "alpha": alpha,
                     "L": L,
                     "batch_size": batch_size,
                     "candidate_chunk_size": candidate_chunk_size,
                     "use_checkpoint": use_checkpoint,
                 },
-                f"checkpoints_fixed_sigma_nx8_T3_ds/dad_T{n_experiments}_step_{step}.pt",
+                checkpoint_dir / f"dad_T{params.T}_step_{step}.pt",
             )
 
         # ====================================================
@@ -433,22 +460,27 @@ def train_dad_chunked(
                     "Nx": params.Nx,
                     "Ny": params.Ny,
                     "Ns": s.numel(),
+                    "T": params.T,
+                    "snr_db": snr_db,
+                    "sigma_mode": "sigma_fixed",
+                    "trainer": "chunked",
 
                     "hidden_dim": policy.hidden_dim,
                     "encoding_dim": policy.encoding_dim,
 
-                    "encoder_type": "mean_var",
+                    "encoder_type": "deepsets",
 
                     "step": step,
                     "history": history,
                     "ema_bound": ema_bound,
 
+                    "alpha": alpha,
                     "L": L,
                     "batch_size": batch_size,
                     "candidate_chunk_size": candidate_chunk_size,
                     "use_checkpoint": use_checkpoint,
                 },
-                f"checkpoints_fixed_sigma_nx8_T3_ds/dad_T{n_experiments}_best.pt",
+                checkpoint_dir / f"dad_T{params.T}_best.pt",
             )
 
         if (
@@ -458,10 +490,10 @@ def train_dad_chunked(
             print(
                 f"step {step:6d} | "
                 f"loss = {loss_value:+.4f} | "
-                f"g_L = {bound_value:+.4f} | "
+                f"mean(g_L) = {bound_value:+.4f} | "
                 f"EMA = {ema_bound:+.4f} | "
                 f"std(g_L) = "
-                f"{g_L.std(unbiased=False).item():.4f} | "
+                f"{g_L.std().item():.4f} | "
                 f"grad = {grad_value:.4f}"
             )
 

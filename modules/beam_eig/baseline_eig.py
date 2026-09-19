@@ -2,7 +2,7 @@ import torch
 
 from modules.beam_eig.array_model import beam_from_phases
 from modules.beam_eig.posterior import compute_rho_mean
-from modules.beam_eig.simulator import sigma_from_snr, simulate_y
+from modules.beam_eig.simulator import simulate_y
 from modules.beam_eig.likelihood import (
     log_amplitude_vector_likelihood,
 )
@@ -499,7 +499,6 @@ def choose_beam(
     eta_grid,
     a_grid,
     s,
-    snr_db,
     sigma,
     p_theta,
     posterior,
@@ -510,6 +509,8 @@ def choose_beam(
 ):
     """
     Choose beam maximizing one-step EIG.
+
+    sigma is fixed for the realization in both modes.
 
     mode:
         "mean"

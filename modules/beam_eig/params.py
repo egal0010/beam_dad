@@ -12,7 +12,7 @@ class Params:
 
     M: int = 300
     N: int = 300
-    T: int = 3
+    T: int = 5
 
     R: int | None = None
     B: int = 2

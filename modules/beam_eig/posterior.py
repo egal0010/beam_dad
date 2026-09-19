@@ -1,7 +1,7 @@
 import torch
 
 from modules.beam_eig.array_model import beam_from_phases
-from modules.beam_eig.likelihood import log_amplitude_vector_likelihood, log_besseli0
+from modules.beam_eig.likelihood import log_amplitude_vector_likelihood
 from modules.beam_eig.simulator import sigma_from_snr
 
 #remarque, on vectorise ici, c'est à dire que l'on calcule le log likelihood pour toutes les hypothèses theta et rho en même temps, ce qui est plus efficace que de le faire une par une.
@@ -14,7 +14,7 @@ def update_posterior(
     s,
     snr_db=None,
     sigma=None,
-    mode=None,
+    mode="sigma_fixed",
 ):
     """
     posterior(theta, rho) après une nouvelle observation.
@@ -24,6 +24,12 @@ def update_posterior(
     posterior : [L, Lrho]
     rho_grid  : [Lrho]
     amp_vec   : [Ns]
+
+    sigma_fixed (default): sigma is fixed for the realization and shared
+    by every rho hypothesis.
+    LEGACY sigma_snr: sigma depends on each rho hypothesis via snr_db.
+    Retained only to reproduce old results; select this mode explicitly.
+    snr_db is used only by the LEGACY mode.
     """
 
     b = beam_from_phases(eta)  # [K, 1]
@@ -39,17 +45,20 @@ def update_posterior(
         * rho_grid[None, :]
     )  # [L, Lrho]
 
-    if mode =="sigma_fixed":
-        sigma2=sigma**2
+    if mode == "sigma_fixed":
+        if sigma is None:
+            raise ValueError("sigma is required for sigma_fixed")
+        sigma2 = sigma**2
 
     elif mode == "sigma_snr":
-
+        # LEGACY: hypothesis-dependent noise, retained for old-result replay.
+        if snr_db is None:
+            raise ValueError("snr_db is required for LEGACY sigma_snr")
         sigma_grid = sigma_from_snr(
-        s=s,
-        snr_db=snr_db,
-        rho_true=rho_grid,
-        ) 
-         # [R]
+            s=s,
+            snr_db=snr_db,
+            rho_true=rho_grid,
+        )  # [R]
         sigma2 = (
             sigma_grid**2
         )[None, :, None]  # [1,R,1]

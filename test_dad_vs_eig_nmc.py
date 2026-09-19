@@ -2,13 +2,14 @@
 
 Cette version permet de choisir :
   - EIG rho-marginalisé ou rho_mean plug-in ;
-  - en mode mean, sigma = c*rho_true ou sigma = c*rho_mean ;
   - recherche EIG exhaustive quantifiée ;
   - recherche EIG aléatoire quantifiée ou continue.
 
-Le posterior suit POSTERIOR_MODE, indépendamment du sigma choisi pour l'EIG.
+En mode mean, sigma = c*rho_true reste fixe pendant chaque réalisation.
+Le posterior suit POSTERIOR_MODE.
 """
 
+import argparse
 import math
 import re
 import time
@@ -26,11 +27,11 @@ from modules.beam_eig.posterior import (
     update_posterior,
     marginal_theta,
     marginal_rho,
-    compute_rho_mean,
 )
 from modules.beam_eig.simulator import generate_amplitude_measurement, sigma_from_snr
 from modules.dad.policy import DADPolicy
 from modules.dad.contrastive import contrastive_bound, make_log_likelihood_fn
+from modules.run_config import default_checkpoint_dir, positive_int
 
 
 # ============================================================
@@ -43,11 +44,6 @@ L_EVAL = 3000       # Contrastifs pour l'évaluation finale.
 N_RECOMPUTE = 5000  # Recalcul EIG du beam choisi pour toutes les méthodes.
 SEED = 42
 
-CHECKPOINT_PATH = Path(
-    "model_checkpoints/checkpoints_nx8/checkpoints_T3_ds/dad_T3_step_6000.pt"
-)
-OUTPUT_PATH = Path("comparison_nmc_vs_dad.pt")
-
 NAMES = {
     "baseline": "EIG / NMC",
     "dad": "DAD",
@@ -57,15 +53,23 @@ NAMES = {
 # Le modèle d'inférence utilisé dans ce script.
 POSTERIOR_MODE = "sigma_fixed"
 
-MEAN_EIG_SIGMA_LABELS = {
-    "rho_true": "sigma = c*rho_true (fixe par réalisation)",
-    "rho_mean": "sigma = c*rho_mean (actualisé avec le posterior)",
-}
+MEAN_EIG_SIGMA_LABEL = "sigma = c*rho_true (fixe par réalisation)"
 
 
 # ============================================================
 # Interactive configuration
 # ============================================================
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--T", type=positive_int, default=Params.T,
+                        help="Nombre de beams par trajectoire (défaut : %(default)s).")
+    parser.add_argument("--checkpoint", type=Path,
+                        help="Checkpoint DAD (défaut : dad_T{T}_best.pt du training).")
+    parser.add_argument("--output", type=Path,
+                        help="Résultats (défaut : comparison_nmc_vs_dad_T{T}.pt).")
+    return parser.parse_args(argv)
 
 
 def choose_methods():
@@ -91,23 +95,6 @@ def choose_eig_mode():
             return "marginal"
         if choice == "2":
             return "mean"
-        print("Choisis 1 ou 2.")
-
-
-def choose_mean_eig_sigma():
-    print("\nSigma pour l'EIG rho_mean plug-in :")
-    print("  c = sqrt(mean(|s|^2) / 10^(SNR_dB/10))")
-    print(f"  1 = {MEAN_EIG_SIGMA_LABELS['rho_true']}")
-    print(f"  2 = {MEAN_EIG_SIGMA_LABELS['rho_mean']}")
-    print("Ce choix s'applique à la sélection des beams et aux diagnostics EIG.")
-    print(f"Mesures : sigma = c*rho_true ; posterior : {POSTERIOR_MODE}.")
-
-    while True:
-        choice = input("Scénario sigma EIG : ").strip()
-        if choice == "1":
-            return "rho_true"
-        if choice == "2":
-            return "rho_mean"
         print("Choisis 1 ou 2.")
 
 
@@ -186,14 +173,19 @@ def sync_cuda(device):
         torch.cuda.synchronize(device)
 
 
-def make_test_set():
+def make_test_set(params=None, *, checkpoint_path=None, output_path=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     torch.manual_seed(SEED)
     if device.type == "cuda":
         torch.cuda.manual_seed_all(SEED)
 
-    params = Params()
+    if params is None:
+        params = Params()
+    if checkpoint_path is None:
+        checkpoint_path = default_checkpoint_dir(params) / f"dad_T{params.T}_best.pt"
+    if output_path is None:
+        output_path = Path(f"comparison_nmc_vs_dad_T{params.T}.pt")
     s = generate_pilot_sequence(device=device, sequence_type="PSS")
 
     theta_grid = torch.deg2rad(
@@ -226,6 +218,8 @@ def make_test_set():
     return SimpleNamespace(
         device=device,
         params=params,
+        checkpoint_path=Path(checkpoint_path),
+        output_path=Path(output_path),
         s=s,
         theta_grid=theta_grid,
         rho_grid=rho_grid,
@@ -260,7 +254,7 @@ def evaluate_g_L(ctx, realization, eta_history, r_history,sigma_scenario):
         dim=1,
     )
 
-    bound, _ = contrastive_bound(
+    bound, var_bound,_ = contrastive_bound(
         theta_candidates=theta_candidates,
         eta_history=eta_history,
         r_history=r_history,
@@ -271,27 +265,6 @@ def evaluate_g_L(ctx, realization, eta_history, r_history,sigma_scenario):
     return bound.item()
 
 
-def sigma_for_mean_eig(ctx, posterior, sigma_scenario, mean_eig_sigma):
-    """Choisit le bruit des observations simulées et du likelihood EIG.
-
-    rho_true : sigma physique, constant pendant une réalisation.
-    rho_mean : sigma recalculé à partir du posterior avant chaque décision.
-    Dans les deux cas, l'amplitude du signal EIG utilise rho_mean.
-    """
-
-    if mean_eig_sigma == "rho_true":
-        return sigma_scenario
-    if mean_eig_sigma != "rho_mean":
-        raise ValueError("mean_eig_sigma must be 'rho_true' or 'rho_mean'")
-
-    rho_mean = compute_rho_mean(posterior, ctx.rho_grid)
-    return sigma_from_snr(
-        s=ctx.s,
-        snr_db=SNR_DB,
-        rho_true=rho_mean,
-    )
-
-
 def estimate_eig_for_selected_beam(
     ctx,
     eta_vec,
@@ -299,27 +272,16 @@ def estimate_eig_for_selected_beam(
     sigma_scenario,
     eig_mode,
     N,
-    mean_eig_sigma="rho_mean",
 ):
     """Évalue un beam déjà choisi avec exactement le mode EIG sélectionné."""
 
     p_theta = marginal_theta(posterior)
 
-    if eig_mode == "mean":
-        sigma_eig = sigma_for_mean_eig(
-            ctx, posterior, sigma_scenario, mean_eig_sigma
-        )
-    else:
-        # En mode marginal, estimate_eig_for_eta_marginal recalcule sigma(rho_j)
-        # pour chaque candidat rho_j ; ce sigma n'est donc pas utilisé.
-        sigma_eig = sigma_scenario
-
     _, eig_values = choose_beam(
         eta_grid=eta_vec[:, None],
         a_grid=ctx.a_grid,
         s=ctx.s,
-        snr_db=SNR_DB,
-        sigma=sigma_eig,
+        sigma=sigma_scenario,
         p_theta=p_theta,
         posterior=posterior,
         rho_grid=ctx.rho_grid,
@@ -337,7 +299,7 @@ def estimate_eig_for_selected_beam(
 
 @torch.inference_mode()
 def evaluate_method(
-    ctx, name, select_beam, *, eig_mode, mean_eig_sigma="rho_mean", nmc=False
+    ctx, name, select_beam, *, eig_mode, nmc=False
 ):
     """Boucle commune : décision, observation, posterior et scores finaux."""
 
@@ -411,7 +373,6 @@ def evaluate_method(
                     sigma_scenario=sigma_scenario,
                     eig_mode=eig_mode,
                     N=ctx.params.N,
-                    mean_eig_sigma=mean_eig_sigma,
                 )
 
             eig_steps.append(eig_t.item())
@@ -423,7 +384,6 @@ def evaluate_method(
                 sigma_scenario=sigma_scenario,
                 eig_mode=eig_mode,
                 N=N_RECOMPUTE,
-                mean_eig_sigma=mean_eig_sigma,
             )
             eig_sum_recomputed += eig_recomputed.item()
 
@@ -444,7 +404,6 @@ def evaluate_method(
                 posterior=posterior,
                 rho_grid=ctx.rho_grid,
                 s=ctx.s,
-                snr_db=SNR_DB,
                 mode=POSTERIOR_MODE,
                 sigma=sigma_scenario,
             )
@@ -549,7 +508,7 @@ def sample_quantized_candidates(
 # ============================================================
 
 
-def eig_nmc(ctx, eig_mode, candidate_cfg, mean_eig_sigma="rho_mean"):
+def eig_nmc(ctx, eig_mode, candidate_cfg):
     beam_generator = torch.Generator(
         device=ctx.device
     ).manual_seed(SEED + 1000)
@@ -597,7 +556,7 @@ def eig_nmc(ctx, eig_mode, candidate_cfg, mean_eig_sigma="rho_mean"):
     print(f"EIG mode: {eig_mode}")
 
     if eig_mode == "mean":
-        print(f"Sigma EIG : {MEAN_EIG_SIGMA_LABELS[mean_eig_sigma]}")
+        print(f"Sigma EIG : {MEAN_EIG_SIGMA_LABEL}")
 
     def select_beam(
         posterior,
@@ -627,20 +586,11 @@ def eig_nmc(ctx, eig_mode, candidate_cfg, mean_eig_sigma="rho_mean"):
                 generator=beam_generator,
             )
 
-        if eig_mode == "mean":
-            sigma_eig = sigma_for_mean_eig(
-                ctx, posterior, sigma_scenario, mean_eig_sigma
-            )
-        else:
-            # Ignoré par le mode marginal, qui recalcule sigma(rho_j).
-            sigma_eig = sigma_scenario
-
         eta, eig_values = choose_beam(
             eta_grid=candidates,
             a_grid=ctx.a_grid,
             s=ctx.s,
-            snr_db=SNR_DB,
-            sigma=sigma_eig,
+            sigma=sigma_scenario,
             p_theta=p_theta,
             posterior=posterior,
             rho_grid=ctx.rho_grid,
@@ -655,7 +605,6 @@ def eig_nmc(ctx, eig_mode, candidate_cfg, mean_eig_sigma="rho_mean"):
         "baseline",
         select_beam,
         eig_mode=eig_mode,
-        mean_eig_sigma=mean_eig_sigma,
         nmc=True,
     )
 
@@ -667,9 +616,15 @@ def eig_nmc(ctx, eig_mode, candidate_cfg, mean_eig_sigma="rho_mean"):
 
 def load_policy(ctx):
     checkpoint = torch.load(
-        CHECKPOINT_PATH,
+        ctx.checkpoint_path,
         map_location=ctx.device,
     )
+
+    if "T" in checkpoint and checkpoint["T"] != ctx.params.T:
+        raise ValueError(
+            f"Checkpoint entraîné avec T={checkpoint['T']}, "
+            f"mais évaluation demandée avec T={ctx.params.T}."
+        )
 
     if "model_state_dict" in checkpoint:
         state_dict = checkpoint["model_state_dict"]
@@ -707,18 +662,18 @@ def load_policy(ctx):
         policy.load_state_dict(state_dict)
     except RuntimeError as exc:
         raise ValueError(
-            f"Le format de {CHECKPOINT_PATH} est reconnu, mais ses poids "
+            f"Le format de {ctx.checkpoint_path} est reconnu, mais ses poids "
             "ne sont pas compatibles avec l'architecture DAD actuelle.\n"
             f"{exc}"
         ) from exc
 
     policy.eval()
-    print(f"Réseau chargé : {CHECKPOINT_PATH}")
+    print(f"Réseau chargé : {ctx.checkpoint_path}")
 
     return policy
 
 
-def dad(ctx, policy, eig_mode, mean_eig_sigma="rho_mean"):
+def dad(ctx, policy, eig_mode):
     # Chauffe aussi l'encodeur avec un historique non vide.
     with torch.inference_mode():
         for t in (0, max(1, ctx.params.T - 1)):
@@ -748,7 +703,6 @@ def dad(ctx, policy, eig_mode, mean_eig_sigma="rho_mean"):
         "dad",
         select_beam,
         eig_mode=eig_mode,
-        mean_eig_sigma=mean_eig_sigma,
     )
 
 
@@ -766,7 +720,7 @@ def random_continuous_beam(K, device):
     return eta
 
 
-def random(ctx, eig_mode, mean_eig_sigma="rho_mean"):
+def random(ctx, eig_mode):
     def select_beam(
         posterior,
         p_theta,
@@ -785,7 +739,6 @@ def random(ctx, eig_mode, mean_eig_sigma="rho_mean"):
         "random",
         select_beam,
         eig_mode=eig_mode,
-        mean_eig_sigma=mean_eig_sigma,
     )
 
 
@@ -794,15 +747,16 @@ def random(ctx, eig_mode, mean_eig_sigma="rho_mean"):
 # ============================================================
 
 
-def print_results(results, n_diagnostic, eig_mode, mean_eig_sigma="rho_mean"):
+def print_results(results, n_diagnostic, eig_mode):
     for name, values in results.items():
         theta = values["theta_errors"]
 
         print(f"\n{'=' * 60}\n{NAMES[name]}\n{'=' * 60}")
         if eig_mode == "mean":
-            print(f"Sigma EIG : {MEAN_EIG_SIGMA_LABELS[mean_eig_sigma]}")
+            print(f"Sigma EIG : {MEAN_EIG_SIGMA_LABEL}")
         print(f"Theta MAE       : {theta.mean().item():.4f} deg")
         print(f"Theta median    : {theta.median().item():.4f} deg")
+        print(f"P(err < 12 deg) : {(theta < 12.0).float().mean().item():.4f}")
         print(
             f"Theta RMSE      : "
             f"{theta.square().mean().sqrt().item():.4f} deg"
@@ -814,6 +768,10 @@ def print_results(results, n_diagnostic, eig_mode, mean_eig_sigma="rho_mean"):
         print(
             f"Mean g_L        : "
             f"{values['g_L'].mean().item():.4f} nats"
+        )
+        print(
+            f"Std g_L         : "
+            f"{values['g_L'].std(unbiased=False).item():.4f} nats"
         )
         print(
             f"Decision time   : "
@@ -855,15 +813,15 @@ def save_results(
     results,
     eig_mode,
     candidate_cfg,
-    mean_eig_sigma="rho_mean",
 ):
     saved = {
         "snr_db": SNR_DB,
         "seed": SEED,
         "L_eval": L_EVAL,
+        "T": ctx.params.T,
         "posterior_mode": POSTERIOR_MODE,
         "eig_mode": eig_mode,
-        "mean_eig_sigma": mean_eig_sigma if eig_mode == "mean" else None,
+        "mean_eig_sigma": "rho_true" if eig_mode == "mean" else None,
         "methods": list(results),
         "theta_true": ctx.theta_true.cpu(),
         "rho_true": ctx.rho_true.cpu(),
@@ -875,14 +833,15 @@ def save_results(
         saved["eig_n_candidates"] = candidate_cfg.n_candidates
 
     if "dad" in results:
-        saved["checkpoint_path"] = str(CHECKPOINT_PATH)
+        saved["checkpoint_path"] = str(ctx.checkpoint_path)
 
     for name, values in results.items():
         for metric, value in values.items():
             saved[f"{name}_{metric}"] = value
 
-    torch.save(saved, OUTPUT_PATH)
-    print(f"\nResults saved to {OUTPUT_PATH}")
+    ctx.output_path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(saved, ctx.output_path)
+    print(f"\nResults saved to {ctx.output_path}")
 
 
 # ============================================================
@@ -890,26 +849,28 @@ def save_results(
 # ============================================================
 
 
-def main():
+def main(argv=None):
+    args = parse_args(argv)
     choices = choose_methods()
-    ctx = make_test_set()
+    ctx = make_test_set(
+        Params(T=args.T),
+        checkpoint_path=args.checkpoint,
+        output_path=args.output,
+    )
 
     # Par défaut, les diagnostics DAD/random restent en EIG marginal.
     eig_mode = "marginal"
-    mean_eig_sigma = None
     candidate_cfg = None
 
     if "1" in choices:
         eig_mode = choose_eig_mode()
-        if eig_mode == "mean":
-            mean_eig_sigma = choose_mean_eig_sigma()
         candidate_cfg = choose_eig_candidates(ctx.params)
 
     print("\nRésumé configuration :")
     print(f"  posterior       : {POSTERIOR_MODE}")
     print(f"  EIG diagnostic : {eig_mode}")
     if eig_mode == "mean":
-        print(f"  sigma EIG       : {MEAN_EIG_SIGMA_LABELS[mean_eig_sigma]}")
+        print(f"  sigma EIG       : {MEAN_EIG_SIGMA_LABEL}")
 
     if candidate_cfg is not None:
         print(f"  recherche EIG  : {candidate_cfg.search}")
@@ -926,7 +887,6 @@ def main():
         results["baseline"] = eig_nmc(
             ctx,
             eig_mode=eig_mode,
-            mean_eig_sigma=mean_eig_sigma,
             candidate_cfg=candidate_cfg,
         )
 
@@ -935,28 +895,24 @@ def main():
             ctx,
             policy,
             eig_mode=eig_mode,
-            mean_eig_sigma=mean_eig_sigma,
         )
 
     if "3" in choices:
         results["random"] = random(
             ctx,
             eig_mode=eig_mode,
-            mean_eig_sigma=mean_eig_sigma,
         )
 
     print_results(
         results,
         n_diagnostic=ctx.params.N,
         eig_mode=eig_mode,
-        mean_eig_sigma=mean_eig_sigma,
     )
 
     save_results(
         ctx,
         results,
         eig_mode=eig_mode,
-        mean_eig_sigma=mean_eig_sigma,
         candidate_cfg=candidate_cfg,
     )
 

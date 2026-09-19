@@ -266,8 +266,7 @@ def compare_one(
             posterior,
             rho_grid,
             s,
-            snr_db,
-            torch.as_tensor(sigma, dtype=torch.float64, device=device),
+            sigma=torch.as_tensor(sigma, dtype=torch.float64, device=device),
             mode="sigma_fixed",
         )
 
@@ -353,7 +352,6 @@ def compare_one(
                     eta_grid_torch,
                     a_mat,
                     s,
-                    snr_db,
                     torch.as_tensor(sigma, dtype=torch.float64, device=device),
                     p_theta_pre,
                     pre_posterior,

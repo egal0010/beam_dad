@@ -1,5 +1,61 @@
 # Deep Adaptive Design for Beam Alignment
 
+## Training and Evaluation Horizon
+
+Run both entrypoints from the project root with the same `--T` value:
+
+```bash
+python -m training.dad_training --T 7
+python test_dad_vs_eig_nmc.py --T 7
+```
+
+The default remains `Params.T` (3). `--T` sets the number of beams in each
+training and evaluation trajectory. Evaluation still asks which methods and
+EIG search to use interactively.
+
+Training defaults to `--trainer full`, which evaluates all contrastive
+candidates together without activation checkpointing. Use `--trainer chunked`
+to evaluate candidates in groups of 32 with activation checkpointing.
+Both trainers share the same optimizer, horizon and checkpoint schedule.
+Checkpoints record the trainer, batch size and number of contrastive samples.
+
+For the default 8-antenna array, training writes to
+`training/checkpoints_fixed_sigma_nx8_T7_ds/`, with `dad_T7_best.pt`, periodic
+`dad_T7_step_<step>.pt` checkpoints, and `dad_T7_final.pt`. Evaluation loads
+the matching best checkpoint by default and saves `comparison_nmc_vs_dad_T7.pt`.
+Paths to training checkpoints are resolved from the repository root.
+
+Numbered checkpoints are saved at steps 2,000, 4,000, 6,000, 10,000, 15,000,
+and 20,000. The best model is still saved whenever the EMA improves, and the
+final model is saved when training finishes. Learning-rate decay remains
+every 1,000 steps.
+
+Use `--checkpoint-dir` during training to select another directory. During
+evaluation, `--checkpoint PATH` selects a particular checkpoint and `--output
+PATH` overrides the results path. New checkpoints record `T` and
+`encoder_type="deepsets"`; evaluation rejects a recorded training horizon that
+differs from `--T`. Older checkpoints without `T` remain loadable, so their
+training horizon must be checked separately.
+
+For a short training smoke run in a separate directory:
+
+```bash
+python -m training.dad_training --T 7 --num-steps 1 --batch-size 2 --L 2 --checkpoint-dir /tmp/beam-dad-smoke-T7
+```
+
+To compare total elapsed time for 100 steps with T=5, B=128 and L=256, run
+these commands sequentially. Separate directories retain both runs:
+
+```bash
+time python -u -m training.dad_training --trainer full --T 5 --num-steps 100 --batch-size 128 --L 256 --checkpoint-dir training/benchmark_T5_B128_L256_full
+time python -u -m training.dad_training --trainer chunked --T 5 --num-steps 100 --batch-size 128 --L 256 --checkpoint-dir training/benchmark_T5_B128_L256_chunked
+```
+
+Production inference uses `sigma_fixed`. The explicit posterior mode
+`sigma_snr` is LEGACY and retained only to reproduce old results. EIG beam
+selection takes fixed `sigma` directly; `choose_beam()` no longer accepts
+the unused `snr_db` argument.
+
 ## Bayesian Optimal Experimental Design
 
 **Bayesian Optimal Experimental Design (BOED)** provides a principled framework for deciding **which experiment should be performed next** in order to learn as much as possible about an unknown parameter $\theta$.

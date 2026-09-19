@@ -279,7 +279,6 @@ with torch.no_grad():
                         eta_grid,
                         a_grid,
                         s,
-                        snr_db.item(),
                         sigma,
                         p_theta,
                         posterior,
@@ -318,8 +317,7 @@ with torch.no_grad():
                         posterior,
                         rho_grid,
                         s,
-                        snr_db,
-                        sigma,
+                        sigma=sigma,
                         mode="sigma_fixed",
                     )
                 )
